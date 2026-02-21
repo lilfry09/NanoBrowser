@@ -53,7 +53,7 @@
         "在标签栏旁边或工具栏增加一个 '+' 按钮，点击时调用 add_new_tab 创建新空白页或主页",
         "将现有的所有导航栏按钮、地址栏逻辑修改为只对当前激活的 Tab 中的 QWebEngineView 生效"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 5,
