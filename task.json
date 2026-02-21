@@ -66,7 +66,7 @@
         "在工具栏添加一个 '历史记录' 按钮",
         "点击 '历史记录' 按钮时，弹出一个 QDialog 窗口，使用 QListWidget 或 QTableView 读取并展示历史记录"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 6,
@@ -79,7 +79,7 @@
         "在工具栏下方新增一个书签栏 (QToolBar)，或者在菜单栏新建一个 '书签' 菜单",
         "程序启动时读取 bookmarks.json，将书签渲染成可点击的按钮或菜单项，点击即可在当前 Tab 加载"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 7,
@@ -91,7 +91,7 @@
         "在界面提供一个极简的设置菜单或弹窗，允许用户在 Google / Bing / Baidu 之间切换默认搜索引擎",
         "将用户的搜索引擎偏好保存到 settings.json 中"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 8,
@@ -103,7 +103,7 @@
         "确保所有文件读写 (history.json, bookmarks.json) 都有合理的异常捕获 (try/except)，防止文件损坏导致程序崩溃",
         "编写一个 README.md 说明如何运行该浏览器"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }
