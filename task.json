@@ -25,7 +25,7 @@
         "让 QWebEngineView 默认加载 'https://www.bing.com'",
         "编写程序的入口执行逻辑 (QApplication)，显示窗口并进入事件循环"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 3,
@@ -39,7 +39,7 @@
         "将地址栏的 returnPressed 信号连接到一个自定义函数，用于将输入的 URL 加载到 WebView (记得处理没有 http:// 前缀的情况)",
         "将 WebView 的 urlChanged 信号连接到地址栏，使其随网页跳转自动更新网址"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 4,

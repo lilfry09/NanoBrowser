@@ -16,3 +16,11 @@
 - 创建了 src 目录并编写了 main.py 输出 Hello Browser。
 - 测试方法与结果：执行 `python src/main.py` 成功输出内容。
 - 注意事项：后续任务将基于 PyQt6-WebEngine 构建浏览器的主窗口，依赖环境现已完全就绪。
+
+## [2026-02-21 22:00:00] - 完成任务: 基础浏览器窗口实现 & 顶部导航栏与地址栏
+- 在 `src/main.py` 引入了 `PyQt6` 相关的 `QMainWindow`, `QToolBar`, `QLineEdit`, `QWebEngineView`。
+- 创建了 `MainWindow` 主窗口，并实例化了 `QWebEngineView` 作为 CentralWidget。
+- WebView 默认加载 'https://www.bing.com'，实现了一个真正的极简窗口浏览器。
+- 添加了基础工具栏 `QToolBar`，并实装了后退、前进、刷新、主页四个操作按钮。
+- 地址栏实现了绑定事件：输入网址回车跳转，以及页面跳转后自动更新地址栏文本。
+- 增加了智能前缀判断：若用户输入 URL 缺少协议头，会自动补全 `https://`。
