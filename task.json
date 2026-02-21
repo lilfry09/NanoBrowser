@@ -1,0 +1,109 @@
+{
+  "project": "NanoBrowser",
+  "description": "一个轻量级的跨平台桌面网页浏览器，基于 Python 和 PyQt6 (Chromium内核)，类似 Chrome/Bing",
+  "tasks": [
+    {
+      "id": 1,
+      "title": "项目初始化与基础环境配置",
+      "description": "初始化 Python 虚拟环境并安装所需的 PyQt6 依赖包",
+      "steps": [
+        "创建一个名为 requirements.txt 的文件，包含 PyQt6 和 PyQt6-WebEngine",
+        "使用 bash 执行 pip install -r requirements.txt 安装依赖 (如果遇到问题，考虑直接运行 pip install PyQt6 PyQt6-WebEngine)",
+        "在项目根目录创建一个 src 文件夹，用于存放源代码",
+        "在 src 目录下创建一个 main.py，写入最简单的 'Hello Browser' 打印，并测试运行通过"
+      ],
+      "passes": true
+    },
+    {
+      "id": 2,
+      "title": "基础浏览器窗口实现",
+      "description": "使用 PyQt6 编写带有 WebView 的主窗口，能够加载网页",
+      "steps": [
+        "在 src/main.py 中导入 PyQt6.QtWidgets, PyQt6.QtCore 和 PyQt6.QtWebEngineWidgets",
+        "创建一个继承自 QMainWindow 的 MainWindow 类",
+        "在 MainWindow 初始化中，创建一个 QWebEngineView，并将其设置为 CentralWidget",
+        "让 QWebEngineView 默认加载 'https://www.bing.com'",
+        "编写程序的入口执行逻辑 (QApplication)，显示窗口并进入事件循环"
+      ],
+      "passes": false
+    },
+    {
+      "id": 3,
+      "title": "顶部导航栏与地址栏",
+      "description": "添加后退、前进、刷新按钮以及网址输入栏",
+      "steps": [
+        "在 MainWindow 中添加一个 QToolBar",
+        "在 QToolBar 中添加 '后退' (Back)、'前进' (Forward)、'刷新' (Reload)、'主页' (Home) 的动作按钮 (QAction)",
+        "在 QToolBar 中添加一个 QLineEdit 作为地址栏",
+        "将按钮的 triggered 信号连接到 QWebEngineView 的对应槽函数 (back, forward, reload)",
+        "将地址栏的 returnPressed 信号连接到一个自定义函数，用于将输入的 URL 加载到 WebView (记得处理没有 http:// 前缀的情况)",
+        "将 WebView 的 urlChanged 信号连接到地址栏，使其随网页跳转自动更新网址"
+      ],
+      "passes": false
+    },
+    {
+      "id": 4,
+      "title": "多标签页 (Tab) 支持",
+      "description": "将单一的 WebView 改造为 QTabWidget 支持多标签页浏览",
+      "steps": [
+        "将 CentralWidget 改为一个 QTabWidget (设置 tabsClosable 为 True)",
+        "实现一个函数 add_new_tab(url, label)，在该函数中创建新的 QWebEngineView，将其添加到 QTabWidget，并加载指定 URL",
+        "处理 QTabWidget 的 tabCloseRequested 信号，实现关闭标签页逻辑",
+        "处理 QTabWidget 的 currentChanged 信号，当切换标签页时，更新地址栏的 URL 和导航栏状态",
+        "在标签栏旁边或工具栏增加一个 '+' 按钮，点击时调用 add_new_tab 创建新空白页或主页",
+        "将现有的所有导航栏按钮、地址栏逻辑修改为只对当前激活的 Tab 中的 QWebEngineView 生效"
+      ],
+      "passes": false
+    },
+    {
+      "id": 5,
+      "title": "浏览历史记录功能",
+      "description": "实现将用户的访问记录保存到本地 JSON 并在界面中查看",
+      "steps": [
+        "在 src 下创建一个 history_manager.py 文件，实现一个 HistoryManager 类",
+        "实现 add_history(url, title) 方法，将访问时间、URL、网页标题保存到 local_history.json 文件中",
+        "在 MainWindow 中，监听当前激活 Tab 的 titleChanged 或 loadFinished 信号，触发 add_history",
+        "在工具栏添加一个 '历史记录' 按钮",
+        "点击 '历史记录' 按钮时，弹出一个 QDialog 窗口，使用 QListWidget 或 QTableView 读取并展示历史记录"
+      ],
+      "passes": false
+    },
+    {
+      "id": 6,
+      "title": "书签功能",
+      "description": "允许用户保存喜欢的网页到书签栏或书签菜单",
+      "steps": [
+        "在 src 下创建一个 bookmark_manager.py 文件，用于读写 bookmarks.json 文件",
+        "在地址栏右侧添加一个 '★' (收藏) 按钮",
+        "点击收藏按钮时，获取当前 Tab 的 URL 和标题，调用 bookmark_manager 保存，并在界面提示保存成功",
+        "在工具栏下方新增一个书签栏 (QToolBar)，或者在菜单栏新建一个 '书签' 菜单",
+        "程序启动时读取 bookmarks.json，将书签渲染成可点击的按钮或菜单项，点击即可在当前 Tab 加载"
+      ],
+      "passes": false
+    },
+    {
+      "id": 7,
+      "title": "默认搜索引擎配置",
+      "description": "在地址栏输入非网址内容时，自动使用搜索引擎进行搜索",
+      "steps": [
+        "修改地址栏的回车事件处理逻辑：判断输入的内容是否是合法的网址 (如包含 '.' 或 http)",
+        "如果不像网址，则使用搜索引擎 URL 拼接 (例如 https://www.bing.com/search?q={keyword})",
+        "在界面提供一个极简的设置菜单或弹窗，允许用户在 Google / Bing / Baidu 之间切换默认搜索引擎",
+        "将用户的搜索引擎偏好保存到 settings.json 中"
+      ],
+      "passes": false
+    },
+    {
+      "id": 8,
+      "title": "代码优化与异常处理",
+      "description": "清理无用代码，补充异常处理，优化用户体验",
+      "steps": [
+        "运行 lint 工具 (如 flake8 或 pylint) 检查代码，修复明显的规范问题",
+        "增加对网络错误或加载失败页面的基础提示",
+        "确保所有文件读写 (history.json, bookmarks.json) 都有合理的异常捕获 (try/except)，防止文件损坏导致程序崩溃",
+        "编写一个 README.md 说明如何运行该浏览器"
+      ],
+      "passes": false
+    }
+  ]
+}

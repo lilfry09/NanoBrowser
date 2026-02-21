@@ -1,0 +1,18 @@
+# 项目进度记录 (Progress Log)
+
+这里记录着 AI 自动开发系统每一次完成的工作内容。
+人类开发者和未来的 AI Agent 都可以通过阅读此文件了解项目的变更历史。
+
+---
+
+## 系统初始化
+- 自动开发守护进程 (Infinite Daemon) 已就绪。
+- Git 仓库已初始化。
+- `CLAUDE.md`, `task.json`, `run-infinite.sh` 配置文件已生成。
+
+## [2026-02-21 21:55:00] - 完成任务: 项目初始化与基础环境配置
+- 创建了 requirements.txt 包含 PyQt6 和 PyQt6-WebEngine。
+- 成功安装了相关的 Python 依赖库。
+- 创建了 src 目录并编写了 main.py 输出 Hello Browser。
+- 测试方法与结果：执行 `python src/main.py` 成功输出内容。
+- 注意事项：后续任务将基于 PyQt6-WebEngine 构建浏览器的主窗口，依赖环境现已完全就绪。
