@@ -188,3 +188,14 @@
 - 启动时自动恢复上次选择的 UA
 - 新增方法: set_user_agent, set_custom_user_agent, _apply_user_agent
 - 测试方法：py_compile 编译通过
+
+## [2026-02-24] - 完成任务: 地址栏自动完成
+- 使用 QCompleter + QStringListModel 实现地址栏自动完成
+- 从历史记录（最近 500 条）和书签（递归展开文件夹）收集建议
+- 建议格式: "URL  |  Title  |  History/Bookmark"，方便用户辨别来源
+- 使用 MatchContains 过滤模式（输入部分文字即可匹配任意位置）
+- 选择建议后自动提取 URL 并导航
+- 引入 2 秒缓存失效机制，避免每次按键都读文件
+- 新增 import: QCompleter, QStyledItemDelegate, QStringListModel
+- 新增方法: _collect_suggestions, _collect_bookmark_suggestions, _refresh_completer_model, _invalidate_completer_cache, _on_completer_activated
+- 测试方法：py_compile 编译通过

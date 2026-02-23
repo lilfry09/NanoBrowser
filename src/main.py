@@ -34,8 +34,10 @@ from PyQt6.QtWidgets import (
     QTreeWidgetItem,
     QInputDialog,
     QAbstractItemView,
+    QCompleter,
+    QStyledItemDelegate,
 )
-from PyQt6.QtCore import QUrl, Qt, QTimer
+from PyQt6.QtCore import QUrl, Qt, QTimer, QStringListModel
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
@@ -1455,6 +1457,18 @@ class MainWindow(QMainWindow):
         self.url_bar.returnPressed.connect(self.navigate_to_url)
         nav_bar.addWidget(self.url_bar)
 
+        # 地址栏自动完成
+        self._completer_model = QStringListModel()
+        self._url_completer = QCompleter()
+        self._url_completer.setModel(self._completer_model)
+        self._url_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self._url_completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self._url_completer.setMaxVisibleItems(10)
+        self._url_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._url_completer.activated.connect(self._on_completer_activated)
+        self.url_bar.setCompleter(self._url_completer)
+        self.url_bar.textEdited.connect(self._refresh_completer_model)
+
         # 收藏按钮
         bookmark_btn = QAction("★", self)
         bookmark_btn.setToolTip("Bookmark this page")
@@ -2096,6 +2110,79 @@ class MainWindow(QMainWindow):
         """聚焦到地址栏 (Ctrl+L)"""
         self.url_bar.setFocus()
         self.url_bar.selectAll()
+
+    # ---- 地址栏自动完成 ----
+
+    def _collect_suggestions(self):
+        """从历史记录和书签中收集建议列表，返回去重的字符串列表。
+        每条格式: "URL  |  Title  |  source" 方便用户辨别来源。
+        """
+        seen = set()
+        suggestions = []
+
+        # 历史记录（最近 500 条，倒序优先显示最近的）
+        history = HistoryManager.load_history()
+        for item in reversed(history[-500:]):
+            url = item.get("url", "")
+            title = item.get("title", "")
+            if url and url not in seen:
+                seen.add(url)
+                label = (
+                    f"{url}  |  {title}  |  History" if title else f"{url}  |  History"
+                )
+                suggestions.append(label)
+
+        # 书签（递归展开文件夹）
+        bookmarks = BookmarkManager.load_bookmarks()
+        self._collect_bookmark_suggestions(bookmarks, suggestions, seen)
+
+        return suggestions
+
+    def _collect_bookmark_suggestions(self, items, suggestions, seen):
+        """递归收集书签建议"""
+        for item in items:
+            if item.get("type") == "folder":
+                self._collect_bookmark_suggestions(
+                    item.get("children", []), suggestions, seen
+                )
+            else:
+                url = item.get("url", "")
+                title = item.get("title", "")
+                if url and url not in seen:
+                    seen.add(url)
+                    label = (
+                        f"{url}  |  {title}  |  Bookmark"
+                        if title
+                        else f"{url}  |  Bookmark"
+                    )
+                    suggestions.append(label)
+
+    def _refresh_completer_model(self, text):
+        """当用户在地址栏输入时刷新自动完成数据"""
+        if len(text) < 1:
+            return
+        # 仅在首次输入或模型为空时重建完整列表（避免每次按键都读文件）
+        if not hasattr(self, "_completer_cache") or self._completer_cache is None:
+            self._completer_cache = self._collect_suggestions()
+            self._completer_model.setStringList(self._completer_cache)
+        # 清除缓存的定时器（2秒后自动失效，下次输入会重新加载）
+        if hasattr(self, "_completer_timer") and self._completer_timer is not None:
+            self._completer_timer.stop()
+        self._completer_timer = QTimer()
+        self._completer_timer.setSingleShot(True)
+        self._completer_timer.timeout.connect(self._invalidate_completer_cache)
+        self._completer_timer.start(2000)
+
+    def _invalidate_completer_cache(self):
+        """使缓存失效，下次输入时重新加载"""
+        self._completer_cache = None
+
+    def _on_completer_activated(self, text):
+        """当用户从自动完成下拉列表中选择一项时，提取 URL 并导航"""
+        # 格式: "URL  |  Title  |  source"
+        url = text.split("  |  ")[0].strip()
+        self.url_bar.setText(url)
+        self.navigate_to_url()
 
     def stop_page_loading(self):
         """停止当前页面加载 (Esc)"""
