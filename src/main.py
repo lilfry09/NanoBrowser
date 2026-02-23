@@ -43,6 +43,7 @@ from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 from history_manager import HistoryManager
 from bookmark_manager import BookmarkManager
 from download_manager import DownloadManager
+from session_manager import SessionManager
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "settings.json")
@@ -1502,11 +1503,21 @@ class MainWindow(QMainWindow):
         find_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
         find_shortcut.activated.connect(self.show_find_bar)
 
+        # 10. 会话恢复 & 关闭标签页记录
+        self._closed_tabs = []  # 最近关闭的标签页 [{"url": ..., "title": ...}, ...]
+        reopen_tab_shortcut = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
+        reopen_tab_shortcut.activated.connect(self.reopen_closed_tab)
+
         # 初始化时，先清空可能存在的缓存以解决某些情况下的网页打不开
         QWebEngineProfile.defaultProfile().clearHttpCache()
 
-        # 初始标签页
-        self.add_new_tab(QUrl("https://www.bing.com"), "Homepage")
+        # 会话恢复：如果设置允许且存在上次会话，则恢复
+        restore_session = self.settings.get("restore_session", True)
+        if restore_session and SessionManager.has_session():
+            self._restore_session()
+        else:
+            # 默认初始标签页
+            self.add_new_tab(QUrl("https://www.bing.com"), "Homepage")
 
     def change_search_engine(self, engine_name):
         self.settings["search_engine"] = engine_name
@@ -1655,12 +1666,30 @@ class MainWindow(QMainWindow):
         if self.tabs.count() <= 1:
             # 如果是最后一个标签页，不关闭窗口，而是跳转到主页并重置状态
             widget = self.tabs.widget(i)
+            # 保存关闭的标签页信息以便恢复
+            url_str = widget.url().toString()
+            if url_str and url_str != "about:blank":
+                self._closed_tabs.append(
+                    {
+                        "url": url_str,
+                        "title": self.tabs.tabText(i),
+                    }
+                )
             widget.setUrl(QUrl("about:blank"))  # 或者跳主页
             self.tabs.setTabText(i, "New Tab")
             self.tabs.setTabIcon(i, QIcon())
             return
 
         widget = self.tabs.widget(i)
+        # 保存关闭的标签页信息以便恢复
+        url_str = widget.url().toString()
+        if url_str and url_str != "about:blank":
+            self._closed_tabs.append(
+                {
+                    "url": url_str,
+                    "title": self.tabs.tabText(i),
+                }
+            )
         self.tabs.removeTab(i)
         self._tab_zoom_factors.pop(id(widget), None)
         widget.deleteLater()
@@ -1911,6 +1940,59 @@ class MainWindow(QMainWindow):
         """显示下载历史对话框"""
         dlg = DownloadHistoryDialog(self)
         dlg.exec()
+
+    # ---- 会话恢复功能 ----
+
+    def _restore_session(self):
+        """从 session.json 恢复上次打开的标签页"""
+        tabs_data, active_index = SessionManager.load_session()
+        if not tabs_data:
+            self.add_new_tab(QUrl("https://www.bing.com"), "Homepage")
+            return
+
+        for tab_info in tabs_data:
+            url = tab_info.get("url", "")
+            title = tab_info.get("title", "Loading...")
+            if url and url != "about:blank":
+                self.add_new_tab(QUrl(url), title)
+
+        # 如果没有恢复任何标签页，打开默认页面
+        if self.tabs.count() == 0:
+            self.add_new_tab(QUrl("https://www.bing.com"), "Homepage")
+        elif 0 <= active_index < self.tabs.count():
+            self.tabs.setCurrentIndex(active_index)
+
+    def _save_session(self):
+        """保存当前所有标签页到 session.json"""
+        tabs_data = []
+        for i in range(self.tabs.count()):
+            widget = self.tabs.widget(i)
+            if widget:
+                url_str = widget.url().toString()
+                title = self.tabs.tabText(i)
+                if url_str and url_str != "about:blank":
+                    tabs_data.append({"url": url_str, "title": title})
+
+        active_index = self.tabs.currentIndex()
+        SessionManager.save_session(tabs_data, active_index)
+
+    def reopen_closed_tab(self):
+        """重新打开最近关闭的标签页 (Ctrl+Shift+T)"""
+        if not self._closed_tabs:
+            self.statusBar().showMessage("No recently closed tabs.", 2000)
+            return
+
+        tab_info = self._closed_tabs.pop()
+        url = tab_info.get("url", "")
+        title = tab_info.get("title", "Restored Tab")
+        if url:
+            self.add_new_tab(QUrl(url), title)
+            self.statusBar().showMessage(f"Restored: {title}", 2000)
+
+    def closeEvent(self, event):
+        """关闭窗口时保存会话"""
+        self._save_session()
+        event.accept()
 
 
 def main():

@@ -134,3 +134,18 @@
 - 替换原 show_bookmark_manager() 占位符为完整 BookmarkManagerDialog
 - 新增 PyQt6 导入: QTreeWidget, QTreeWidgetItem, QInputDialog, QAbstractItemView
 - 测试方法：py_compile 两个文件均编译通过
+
+## [2026-02-23] - 完成任务: 会话恢复功能
+- 创建 src/session_manager.py，实现 SessionManager 类
+  - save_session(tabs_data, active_index): 保存标签页列表和激活索引到 session.json
+  - load_session(): 加载上次保存的会话
+  - has_session(): 检查是否存在会话文件
+  - clear_session(): 清除会话文件
+- 在 MainWindow.__init__ 中：启动时检查 settings.restore_session (默认 True)，如有会话则恢复
+- _restore_session(): 从 session.json 恢复所有标签页及激活标签
+- _save_session(): 遍历所有标签页，保存 URL 和标题
+- closeEvent(): 关闭窗口时自动调用 _save_session() 保存会话
+- close_tab() 中记录关闭的标签页信息到 _closed_tabs 列表
+- reopen_closed_tab(): 从 _closed_tabs 弹出最近关闭的标签页并恢复，Ctrl+Shift+T 快捷键
+- 导入 SessionManager 模块
+- 测试方法：py_compile 两个文件均编译通过
