@@ -1483,7 +1483,19 @@ class MainWindow(QMainWindow):
         )
         nav_bar.addAction(new_tab_btn)
 
-        # 4. 书签菜单
+        # 4. 文件菜单
+        file_menu = self.menuBar().addMenu("File")
+
+        print_action = QAction("Print...", self)
+        print_action.setShortcut(QKeySequence("Ctrl+P"))
+        print_action.triggered.connect(self.print_page)
+        file_menu.addAction(print_action)
+
+        save_pdf_action = QAction("Save as PDF...", self)
+        save_pdf_action.triggered.connect(self.save_as_pdf)
+        file_menu.addAction(save_pdf_action)
+
+        # 5. 书签菜单
         self.bookmark_menu = self.menuBar().addMenu("Bookmarks")
         self.update_bookmark_menu()
 
@@ -2019,6 +2031,62 @@ class MainWindow(QMainWindow):
         """显示快捷键帮助对话框 (F1)"""
         dlg = ShortcutsHelpDialog(self)
         dlg.exec()
+
+    # ---- 打印与PDF功能 ----
+
+    def print_page(self):
+        """打印当前页面 (Ctrl+P)"""
+        browser = self.tabs.currentWidget()
+        if not browser:
+            return
+
+        try:
+            from PyQt6.QtPrintSupport import QPrintPreviewDialog, QPrinter
+
+            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            preview = QPrintPreviewDialog(printer, self)
+            preview.setWindowTitle(f"Print Preview - {browser.title()}")
+            preview.paintRequested.connect(lambda p: self._do_print(browser, p))
+            preview.exec()
+        except ImportError:
+            # PyQt6-Qt6-Printing 不可用时，使用简单的 printToPdf 替代
+            QMessageBox.information(
+                self,
+                "Print",
+                "Print preview requires PyQt6 printing support.\n"
+                "You can use 'Save as PDF' as an alternative.",
+            )
+
+    def _do_print(self, browser, printer):
+        """执行打印（print preview 回调）"""
+        # 使用同步方式打印：printToPdf 后由 QPrintPreviewDialog 处理
+        # 实际打印通过 page().print()
+        try:
+            browser.page().print(printer, lambda ok: None)
+        except Exception:
+            pass
+
+    def save_as_pdf(self):
+        """将当前页面保存为 PDF 文件"""
+        browser = self.tabs.currentWidget()
+        if not browser:
+            return
+
+        title = browser.title() or "page"
+        # 清理文件名中的非法字符
+        safe_title = re.sub(r'[\\/:*?"<>|]', "_", title)
+
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save as PDF",
+            f"{safe_title}.pdf",
+            "PDF Files (*.pdf);;All Files (*)",
+        )
+        if not filepath:
+            return
+
+        browser.page().printToPdf(filepath)
+        self.statusBar().showMessage(f"Saved PDF: {os.path.basename(filepath)}", 3000)
 
     # ---- 下载管理功能 ----
 

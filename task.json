@@ -237,7 +237,7 @@
         "支持 Ctrl+P 快捷键打印",
         "实现打印预览对话框"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 19,

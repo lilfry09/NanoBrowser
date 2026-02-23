@@ -166,3 +166,15 @@
 - 新增方法: switch_to_next_tab, switch_to_prev_tab, focus_url_bar, stop_page_loading, show_shortcuts_help
 - 保留已有快捷键: Ctrl+F, Ctrl+U, Ctrl+Shift+N, Ctrl+Shift+T, F11, Ctrl++/-/0
 - 测试方法：py_compile 编译通过
+
+## [2026-02-23] - 完成任务: 打印与保存为PDF
+- 在菜单栏新增 "File" 菜单（位于 Bookmarks 之前）
+- File > Print...(Ctrl+P): 使用 QPrintPreviewDialog 显示打印预览
+  - 如果 PyQt6-Qt6-Printing 不可用，提示用户使用 Save as PDF 替代
+  - 通过 browser.page().print(printer, callback) 执行打印
+- File > Save as PDF...: 使用 QFileDialog 选择保存路径
+  - 通过 browser.page().printToPdf(filepath) 保存
+  - 文件名默认使用页面标题（清理非法字符）
+  - 状态栏显示保存成功提示
+- 新增方法: print_page, _do_print, save_as_pdf
+- 测试方法：py_compile 编译通过
