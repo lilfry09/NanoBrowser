@@ -83,3 +83,12 @@
 - 全屏模式显示半透明退出提示 "Press F11 to exit fullscreen"，3 秒后自动消失
 - 全屏下鼠标移到顶部（Y<=5px）时临时显示工具栏，移开后（Y>100px）自动隐藏
 - 测试方法：py_compile 编译通过
+
+## [2026-02-23 14:35:00] - 完成任务: 查看页面源代码
+- 新增 SourceViewDialog 类，带有简单的 HTML 语法高亮（标签蓝色、属性值橙色、注释绿色）
+- 使用 QTextEdit 显示源代码，设置等宽字体和暗色背景
+- 支持搜索：Find Next / Find Previous 按钮 + Enter 回车快速查找
+- 在菜单栏新增 "View" 菜单，包含 "Page Source" 选项
+- 支持 Ctrl+U 快捷键快速查看源代码
+- 使用 QWebEngineView.page().toHtml() 异步获取页面 HTML
+- 测试方法：py_compile 编译通过

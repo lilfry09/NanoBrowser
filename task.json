@@ -154,7 +154,7 @@
         "支持语法高亮和简单的代码搜索功能",
         "支持 Ctrl+U 快捷键"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 13,

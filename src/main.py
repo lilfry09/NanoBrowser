@@ -29,6 +29,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QFileDialog,
     QStatusBar,
+    QTextEdit,
 )
 from PyQt6.QtCore import QUrl, Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
@@ -505,6 +506,88 @@ class DownloadHistoryDialog(QDialog):
             self.load_downloads()
 
 
+class SourceViewDialog(QDialog):
+    """页面源代码查看对话框，带简单语法高亮和搜索功能"""
+
+    def __init__(self, html_content, page_title="", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"Source: {page_title}" if page_title else "Page Source")
+        self.resize(800, 600)
+
+        layout = QVBoxLayout(self)
+
+        # 搜索栏
+        search_layout = QHBoxLayout()
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search in source code...")
+        self.search_input.returnPressed.connect(self.find_next)
+
+        find_btn = QPushButton("Find Next")
+        find_btn.clicked.connect(self.find_next)
+        find_prev_btn = QPushButton("Find Previous")
+        find_prev_btn.clicked.connect(self.find_previous)
+
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(find_btn)
+        search_layout.addWidget(find_prev_btn)
+        layout.addLayout(search_layout)
+
+        # 源代码显示区域
+        self.text_edit = QTextEdit()
+        self.text_edit.setReadOnly(True)
+        self.text_edit.setFontFamily("Consolas, 'Courier New', monospace")
+        self.text_edit.setFontPointSize(10)
+        self.text_edit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        self.text_edit.setStyleSheet(
+            "QTextEdit { background-color: #1e1e1e; color: #d4d4d4; "
+            "border: 1px solid #555555; padding: 5px; }"
+        )
+        layout.addWidget(self.text_edit)
+
+        # 应用简单的语法高亮后设置文本
+        highlighted = self._simple_highlight(html_content)
+        self.text_edit.setHtml(f"<pre style='color:#d4d4d4;'>{highlighted}</pre>")
+
+    def _simple_highlight(self, html):
+        """简单的 HTML 语法高亮（将标签、属性、字符串着色）"""
+        import html as html_module
+
+        # 先对内容进行 HTML 转义
+        escaped = html_module.escape(html)
+
+        # 高亮 HTML 标签 <...>
+        escaped = re.sub(
+            r"(&lt;/?)([\w\-]+)", r'<span style="color:#569cd6;">\1\2</span>', escaped
+        )
+        escaped = re.sub(r"(&gt;)", r'<span style="color:#569cd6;">\1</span>', escaped)
+        # 高亮属性值 "..."
+        escaped = re.sub(
+            r"(&quot;.*?&quot;)", r'<span style="color:#ce9178;">\1</span>', escaped
+        )
+        # 高亮注释 <!-- ... -->
+        escaped = re.sub(
+            r"(&lt;!--.*?--&gt;)",
+            r'<span style="color:#6a9955;">\1</span>',
+            escaped,
+            flags=re.DOTALL,
+        )
+        return escaped
+
+    def find_next(self):
+        """向下查找"""
+        text = self.search_input.text()
+        if text:
+            self.text_edit.find(text)
+
+    def find_previous(self):
+        """向上查找"""
+        from PyQt6.QtGui import QTextDocument
+
+        text = self.search_input.text()
+        if text:
+            self.text_edit.find(text, QTextDocument.FindFlag.FindBackward)
+
+
 class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -710,7 +793,15 @@ class MainWindow(QMainWindow):
         download_history_action.triggered.connect(self.show_download_history)
         download_menu.addAction(download_history_action)
 
-        # 6. 下载进度对话框 (单例)
+        # 6. 查看菜单
+        view_menu = self.menuBar().addMenu("View")
+
+        view_source_action = QAction("Page Source", self)
+        view_source_action.setShortcut(QKeySequence("Ctrl+U"))
+        view_source_action.triggered.connect(self.view_page_source)
+        view_menu.addAction(view_source_action)
+
+        # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
 
         # 监听下载请求
@@ -1078,6 +1169,21 @@ class MainWindow(QMainWindow):
                 self._nav_bar.hide()
                 self.tabs.tabBar().hide()
                 self.menuBar().hide()
+
+    # ---- 查看页面源代码 ----
+
+    def view_page_source(self):
+        """获取当前页面的 HTML 源代码并显示"""
+        browser = self.tabs.currentWidget()
+        if not browser:
+            return
+        title = browser.title()
+        browser.page().toHtml(lambda html: self._show_source_dialog(html, title))
+
+    def _show_source_dialog(self, html, title):
+        """在对话框中展示源代码"""
+        dlg = SourceViewDialog(html, title, self)
+        dlg.exec()
 
     # ---- 下载管理功能 ----
 
