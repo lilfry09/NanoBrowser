@@ -2190,6 +2190,32 @@ class MainWindow(QMainWindow):
         screenshot_full_action.triggered.connect(self.screenshot_full_page)
         tools_menu.addAction(screenshot_full_action)
 
+        # 翻译功能
+        tools_menu.addSeparator()
+        translate_menu = tools_menu.addMenu("Translate Page")
+        translate_targets = [
+            ("English", "en"),
+            ("Chinese (Simplified)", "zh-CN"),
+            ("Chinese (Traditional)", "zh-TW"),
+            ("Japanese", "ja"),
+            ("Korean", "ko"),
+            ("French", "fr"),
+            ("German", "de"),
+            ("Spanish", "es"),
+            ("Russian", "ru"),
+        ]
+        for lang_name, lang_code in translate_targets:
+            action = QAction(lang_name, self)
+            action.triggered.connect(
+                lambda checked, code=lang_code: self.translate_page(code)
+            )
+            translate_menu.addAction(action)
+
+        translate_menu.addSeparator()
+        restore_action = QAction("Show Original Page", self)
+        restore_action.triggered.connect(self.restore_original_page)
+        translate_menu.addAction(restore_action)
+
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
 
@@ -2245,6 +2271,7 @@ class MainWindow(QMainWindow):
         # 10. 会话恢复 & 关闭标签页记录
         self._closed_tabs = []  # 最近关闭的标签页 [{"url": ..., "title": ...}, ...]
         self._pinned_tabs = set()  # 固定的标签页 widget id 集合
+        self._original_url_before_translate = None  # 翻译前的原始 URL
         reopen_tab_shortcut = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
         reopen_tab_shortcut.activated.connect(self.reopen_closed_tab)
 
@@ -2980,6 +3007,41 @@ class MainWindow(QMainWindow):
             if path:
                 pixmap.save(path, "JPEG", 90)
                 self.statusBar().showMessage(f"Screenshot saved: {path}", 3000)
+
+    # ---- 网页翻译功能 ----
+
+    def translate_page(self, target_lang: str):
+        """使用 Google Translate 翻译当前页面"""
+        browser = self.current_browser()
+        if not browser:
+            return
+        current_url = browser.url().toString()
+        if not current_url or current_url in ("about:blank", ""):
+            self.statusBar().showMessage("No page to translate.", 3000)
+            return
+        # 如果已经是翻译页面，先提取原始 URL
+        if "translate.google" in current_url:
+            self.statusBar().showMessage(
+                "Page is already translated. Use 'Show Original Page' first.", 3000
+            )
+            return
+        # 保存原始 URL 以便恢复
+        self._original_url_before_translate = current_url
+        translate_url = f"https://translate.google.com/translate?sl=auto&tl={target_lang}&u={current_url}"
+        browser.setUrl(QUrl(translate_url))
+        self.statusBar().showMessage(f"Translating page to {target_lang}...", 3000)
+
+    def restore_original_page(self):
+        """恢复翻译前的原始页面"""
+        original = getattr(self, "_original_url_before_translate", None)
+        if not original:
+            self.statusBar().showMessage("No original page to restore.", 3000)
+            return
+        browser = self.current_browser()
+        if browser:
+            browser.setUrl(QUrl(original))
+            self.statusBar().showMessage("Restored original page.", 3000)
+        self._original_url_before_translate = None
 
     # ---- 无痕浏览模式 ----
 

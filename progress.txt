@@ -261,3 +261,14 @@
 - 文件名默认使用页面标题（清理非法字符）
 - 新增方法: screenshot_visible, screenshot_full_page, _on_full_page_size, _capture_and_restore, _show_screenshot_preview, _save_screenshot
 - 测试方法：py_compile 编译通过
+
+## [2026-02-24] - 完成任务: 网页翻译功能
+- 在 Tools 菜单添加 "Translate Page" 子菜单，包含 9 种目标语言（English, Chinese Simplified/Traditional, Japanese, Korean, French, German, Spanish, Russian）
+- 使用 Google Translate URL 重定向方式实现翻译（无需 API Key）：https://translate.google.com/translate?sl=auto&tl={code}&u={url}
+- 自动语言检测：sl=auto 参数让 Google Translate 自动识别源语言
+- "Show Original Page" 选项可恢复翻译前的原始页面
+- 原始 URL 存储在 self._original_url_before_translate，恢复后清空
+- 防护逻辑：空白页面不翻译，已翻译页面提示用户先恢复原始页面
+- 新增方法: translate_page(target_lang), restore_original_page()
+- 初始化 self._original_url_before_translate = None
+- 测试方法：py_compile 编译通过
