@@ -49,7 +49,7 @@ from PyQt6.QtWidgets import (
     QScrollArea,
 )
 from PyQt6.QtCore import QUrl, Qt, QTimer, QStringListModel, QThread, pyqtSignal
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QFont
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QFont, QColor
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 
@@ -60,6 +60,7 @@ from session_manager import SessionManager
 from feed_reader import FeedManager, FeedParser
 from password_manager import PasswordManager, PasswordCrypto
 from theme_manager import ThemeManager, generate_stylesheet, DEFAULT_THEME_COLORS
+from extension_manager import ExtensionManager
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "settings.json")
@@ -2503,6 +2504,144 @@ class PasswordManagerDialog(QDialog):
             self._refresh_table()
 
 
+class ExtensionManagerDialog(QDialog):
+    """扩展管理对话框：查看、启用/禁用扩展"""
+
+    def __init__(self, extension_manager, parent=None):
+        super().__init__(parent)
+        self.extension_manager = extension_manager
+        self.setWindowTitle("Extensions Manager")
+        self.setMinimumSize(550, 400)
+        self._build_ui()
+        self._refresh_list()
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+
+        # 说明标签
+        info_label = QLabel(
+            "Manage browser extensions. Extensions are loaded from the plugins/ directory."
+        )
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+
+        # 扩展列表
+        self._tree = QTreeWidget()
+        self._tree.setHeaderLabels(["Name", "Version", "Status", "Description"])
+        self._tree.setColumnWidth(0, 160)
+        self._tree.setColumnWidth(1, 60)
+        self._tree.setColumnWidth(2, 70)
+        self._tree.setColumnWidth(3, 220)
+        self._tree.setAlternatingRowColors(True)
+        self._tree.setRootIsDecorated(False)
+        layout.addWidget(self._tree)
+
+        # 按钮栏
+        btn_layout = QHBoxLayout()
+
+        self._toggle_btn = QPushButton("Enable/Disable")
+        self._toggle_btn.clicked.connect(self._toggle_selected)
+        btn_layout.addWidget(self._toggle_btn)
+
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.clicked.connect(self._refresh_list)
+        btn_layout.addWidget(refresh_btn)
+
+        btn_layout.addStretch()
+
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(close_btn)
+
+        layout.addLayout(btn_layout)
+
+        # 详细信息区
+        self._detail_label = QLabel("Select an extension to see details.")
+        self._detail_label.setWordWrap(True)
+        self._detail_label.setStyleSheet("padding: 6px; font-size: 12px;")
+        layout.addWidget(self._detail_label)
+
+        self._tree.currentItemChanged.connect(self._on_selection_changed)
+
+    def _refresh_list(self):
+        self._tree.clear()
+        manifests = self.extension_manager.get_all_manifests()
+        loaded = self.extension_manager.get_loaded_extensions()
+
+        for manifest in manifests:
+            name = manifest.get("name", "Unknown")
+            version = manifest.get("version", "?")
+            description = manifest.get("description", "")
+            is_enabled = self.extension_manager.is_extension_enabled(name)
+            is_loaded = name in loaded
+
+            item = QTreeWidgetItem()
+            item.setText(0, name)
+            item.setText(1, version)
+            item.setText(2, "Enabled" if is_enabled else "Disabled")
+            item.setText(3, description)
+            item.setData(0, Qt.ItemDataRole.UserRole, manifest)
+
+            # 颜色标记
+            if is_loaded:
+                item.setForeground(2, QColor("#4EC9B0"))  # 绿色表示已加载
+            elif not is_enabled:
+                item.setForeground(2, QColor("#808080"))  # 灰色表示禁用
+
+            self._tree.addTopLevelItem(item)
+
+        if not manifests:
+            item = QTreeWidgetItem()
+            item.setText(0, "(No extensions found)")
+            item.setText(3, "Place extensions in the plugins/ directory.")
+            self._tree.addTopLevelItem(item)
+
+    def _toggle_selected(self):
+        item = self._tree.currentItem()
+        if not item:
+            return
+        manifest = item.data(0, Qt.ItemDataRole.UserRole)
+        if not manifest:
+            return
+        name = manifest.get("name", "")
+        if not name:
+            return
+
+        current_enabled = self.extension_manager.is_extension_enabled(name)
+        self.extension_manager.set_extension_enabled(name, not current_enabled)
+
+        new_state = "Enabled" if not current_enabled else "Disabled"
+        QMessageBox.information(
+            self,
+            "Extension Updated",
+            f"'{name}' has been {new_state.lower()}.\n"
+            "Toolbar changes will take effect after restarting the browser.",
+        )
+        self._refresh_list()
+
+    def _on_selection_changed(self, current, _previous):
+        if not current:
+            self._detail_label.setText("Select an extension to see details.")
+            return
+        manifest = current.data(0, Qt.ItemDataRole.UserRole)
+        if not manifest:
+            self._detail_label.setText("")
+            return
+        name = manifest.get("name", "Unknown")
+        author = manifest.get("author", "Unknown")
+        version = manifest.get("version", "?")
+        desc = manifest.get("description", "")
+        permissions = ", ".join(manifest.get("permissions", []))
+        enabled = self.extension_manager.is_extension_enabled(name)
+        self._detail_label.setText(
+            f"<b>{name}</b> v{version}<br>"
+            f"Author: {author}<br>"
+            f"Permissions: {permissions}<br>"
+            f"Status: {'Enabled' if enabled else 'Disabled'}<br>"
+            f"<i>{desc}</i>"
+        )
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -2783,6 +2922,12 @@ class MainWindow(QMainWindow):
         password_manager_action.triggered.connect(self.show_password_manager)
         tools_menu.addAction(password_manager_action)
 
+        # 6f. Extensions 菜单项
+        tools_menu.addSeparator()
+        extensions_action = QAction("Extensions...", self)
+        extensions_action.triggered.connect(self.show_extensions_dialog)
+        tools_menu.addAction(extensions_action)
+
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
 
@@ -2840,6 +2985,13 @@ class MainWindow(QMainWindow):
         self._pinned_tabs = set()  # 固定的标签页 widget id 集合
         self._original_url_before_translate = None  # 翻译前的原始 URL
         self._master_password_cache = None  # 会话中缓存的主密码（内存中，不持久化）
+
+        # 12. 扩展系统初始化
+        self.extension_manager = ExtensionManager()
+        self.extension_manager.set_main_window(self)
+        self.extension_manager.load_all_enabled()
+        self._setup_extension_toolbar()
+
         reopen_tab_shortcut = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
         reopen_tab_shortcut.activated.connect(self.reopen_closed_tab)
 
@@ -3015,6 +3167,8 @@ class MainWindow(QMainWindow):
             self._try_auto_fill(browser, url)
             # 注入表单提交监听脚本
             self._inject_form_listener(browser)
+            # 通知所有扩展页面已加载
+            self.extension_manager.on_page_loaded(url, title)
         else:
             self.update_tab_title("Load Error", browser)
 
@@ -3791,6 +3945,30 @@ class MainWindow(QMainWindow):
             if master_pw:
                 PasswordManager.save_password(url, username, password, master_pw)
                 self.statusBar().showMessage("Password saved.", 3000)
+
+    # ---- 扩展系统 ----
+
+    def show_extensions_dialog(self):
+        """打开扩展管理对话框"""
+        dlg = ExtensionManagerDialog(self.extension_manager, self)
+        dlg.exec()
+
+    def _setup_extension_toolbar(self):
+        """根据已加载扩展的工具栏按钮设置工具栏"""
+        actions = self.extension_manager.get_all_toolbar_actions()
+        if not actions:
+            return
+        ext_toolbar = self.addToolBar("Extensions")
+        ext_toolbar.setMovable(False)
+        for action_info in actions:
+            label = action_info.get("label", "Ext")
+            tooltip = action_info.get("tooltip", label)
+            callback = action_info.get("callback")
+            act = QAction(label, self)
+            act.setToolTip(tooltip)
+            if callback:
+                act.triggered.connect(callback)
+            ext_toolbar.addAction(act)
 
     # ---- 无痕浏览模式 ----
 

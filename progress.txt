@@ -344,3 +344,27 @@
   - Import Theme 按钮：从 JSON 文件导入
 - 新增导入: QColorDialog, QScrollArea (全局), ThemeManager, generate_stylesheet, DEFAULT_THEME_COLORS
 - 测试方法：py_compile 编译通过（theme_manager.py + main.py）
+
+## [2026-02-24] - 完成任务: 扩展系统基础 (Task 30)
+- 创建 src/extension_manager.py：
+  - BaseExtension 基类：on_load, on_unload, on_page_loaded, get_context_menu_items, get_toolbar_actions
+  - 便捷 API：open_url, get_current_url, get_current_title, show_status_message, run_javascript
+  - ExtensionManager 类：discover_extensions, load_extension (importlib 动态加载), unload_extension
+  - 扩展状态持久化到 extensions_state.json
+  - 支持启用/禁用扩展 (set_extension_enabled / is_extension_enabled)
+- 创建 plugins/ 目录及示例扩展 plugins/github_quick_access/：
+  - manifest.json 定义扩展名称、版本、描述、权限
+  - main.py 实现 GitHubQuickAccess 类（工具栏 GitHub 按钮、右键菜单快捷链接、页面加载检测）
+- main.py 集成：
+  - 全局导入 ExtensionManager 和 QColor
+  - ExtensionManagerDialog 类：QTreeWidget 列表显示所有扩展，启用/禁用切换，详情面板
+  - MainWindow.__init__ 中初始化 ExtensionManager 并加载启用的扩展
+  - _setup_extension_toolbar() 方法：根据扩展的工具栏按钮创建 Extensions 工具栏
+  - on_load_finished() 中调用 extension_manager.on_page_loaded() 通知扩展
+  - show_extensions_dialog() 方法打开扩展管理对话框
+  - Tools 菜单中 "Extensions..." 菜单项连接到 show_extensions_dialog
+- 测试方法：py_compile 编译通过（extension_manager.py + main.py）
+- 注意事项：
+  - 扩展 Python 文件通过 importlib.util.spec_from_file_location 动态加载
+  - 扩展需继承 BaseExtension 并放在 plugins/<name>/main.py
+  - 工具栏按钮在启动时加载，运行中启用/禁用扩展后需重启浏览器才能更新工具栏

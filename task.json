@@ -396,7 +396,7 @@
         "创建示例扩展示例（如 GitHub 快捷访问）",
         "在设置中添加扩展管理界面"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }

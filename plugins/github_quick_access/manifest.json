@@ -1,0 +1,9 @@
+{
+  "name": "GitHub Quick Access",
+  "version": "1.0.0",
+  "description": "Quick shortcuts to GitHub features: repos, trending, gists, etc.",
+  "author": "NanoBrowser Team",
+  "entry": "main.py",
+  "permissions": ["context_menu", "toolbar", "page_load"],
+  "enabled": true
+}
