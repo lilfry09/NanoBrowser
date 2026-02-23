@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QToolBar, QLineEdit,
                              QTabWidget, QDialog, QVBoxLayout, QListWidget, QMessageBox, QMenu)
 from PyQt6.QtCore import QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEngineProfile
 from PyQt6.QtGui import QAction
 from history_manager import HistoryManager
 from bookmark_manager import BookmarkManager
@@ -71,6 +72,9 @@ class MainWindow(QMainWindow):
         self.bookmark_menu = self.menuBar().addMenu("Bookmarks")
         self.update_bookmark_menu()
 
+        # 初始化时，先清空可能存在的缓存以解决某些情况下的网页打不开
+        QWebEngineProfile.defaultProfile().clearHttpCache()
+
         # 初始标签页
         self.add_new_tab(QUrl("https://www.bing.com"), "Homepage")
 
@@ -109,6 +113,14 @@ class MainWindow(QMainWindow):
 
     def add_new_tab(self, qurl, label):
         browser = QWebEngineView()
+        
+        # 捕获 ssl 错误以防由于代理导致网页加载失败
+        def handle_certificate_error(error):
+            error.ignoreCertificateError()
+            return True
+            
+        browser.page().certificateError.connect(handle_certificate_error)
+
         browser.setUrl(qurl)
         
         browser.urlChanged.connect(lambda q: self.update_url_bar(q, browser))
@@ -123,6 +135,9 @@ class MainWindow(QMainWindow):
             url = browser.url().toString()
             title = browser.title()
             HistoryManager.add_history(url, title)
+        else:
+            # 如果加载失败，在标题上提示
+            self.update_tab_title("Load Error", browser)
 
     def update_tab_title(self, title, browser):
         index = self.tabs.indexOf(browser)
