@@ -328,7 +328,7 @@
         "支持保存为 PNG/JPG 格式",
         "提供截图预览和保存位置选择"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 26,

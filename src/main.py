@@ -2179,6 +2179,17 @@ class MainWindow(QMainWindow):
         # DevTools 窗口引用
         self._devtools_window = None
 
+        # Screenshot 功能
+        tools_menu.addSeparator()
+        screenshot_visible_action = QAction("Screenshot (Visible Area)", self)
+        screenshot_visible_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        screenshot_visible_action.triggered.connect(self.screenshot_visible)
+        tools_menu.addAction(screenshot_visible_action)
+
+        screenshot_full_action = QAction("Screenshot (Full Page)", self)
+        screenshot_full_action.triggered.connect(self.screenshot_full_page)
+        tools_menu.addAction(screenshot_full_action)
+
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
 
@@ -2840,6 +2851,135 @@ class MainWindow(QMainWindow):
         browser.page().setDevToolsPage(devtools_view.page())
 
         self._devtools_window.show()
+
+    # ---- 网页截图 ----
+
+    def screenshot_visible(self):
+        """截取当前页面的可见区域"""
+        browser = self.tabs.currentWidget()
+        if not browser:
+            return
+
+        pixmap = browser.grab()
+        self._show_screenshot_preview(pixmap)
+
+    def screenshot_full_page(self):
+        """截取整个网页（包括滚动区域），通过临时调整视图大小实现"""
+        browser = self.tabs.currentWidget()
+        if not browser:
+            return
+
+        # 使用 JavaScript 获取完整页面尺寸
+        browser.page().runJavaScript(
+            """
+            (function() {
+                var body = document.body;
+                var html = document.documentElement;
+                var width = Math.max(body.scrollWidth, body.offsetWidth,
+                                     html.clientWidth, html.scrollWidth, html.offsetWidth);
+                var height = Math.max(body.scrollHeight, body.offsetHeight,
+                                      html.clientHeight, html.scrollHeight, html.offsetHeight);
+                return JSON.stringify({width: width, height: height});
+            })();
+            """,
+            lambda result: self._on_full_page_size(result, browser),
+        )
+
+    def _on_full_page_size(self, result, browser):
+        """获取页面尺寸后执行全页截图"""
+        try:
+            import json as _json
+
+            size_data = _json.loads(result)
+            full_width = min(size_data["width"], 4096)
+            full_height = min(size_data["height"], 32000)
+        except (TypeError, ValueError, KeyError):
+            # fallback 到可见区域
+            self.screenshot_visible()
+            return
+
+        from PyQt6.QtCore import QSize
+
+        original_size = browser.size()
+        # 临时调整浏览器视图大小以容纳整个页面
+        browser.resize(QSize(full_width, full_height))
+        # 延迟一帧让渲染完成
+        QTimer.singleShot(
+            300,
+            lambda: self._capture_and_restore(browser, original_size),
+        )
+
+    def _capture_and_restore(self, browser, original_size):
+        """截图后恢复原始尺寸"""
+        pixmap = browser.grab()
+        browser.resize(original_size)
+        self._show_screenshot_preview(pixmap)
+
+    def _show_screenshot_preview(self, pixmap):
+        """显示截图预览对话框，支持保存"""
+        from PyQt6.QtWidgets import QScrollArea
+        from PyQt6.QtGui import QPixmap
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Screenshot Preview")
+        dlg.resize(700, 500)
+
+        layout = QVBoxLayout(dlg)
+
+        # 滚动区域显示截图
+        scroll = QScrollArea()
+        img_label = QLabel()
+        # 缩放预览（最大 680px 宽）
+        scaled = pixmap.scaledToWidth(
+            min(680, pixmap.width()),
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        img_label.setPixmap(scaled)
+        scroll.setWidget(img_label)
+        scroll.setWidgetResizable(False)
+        layout.addWidget(scroll)
+
+        # 信息标签
+        info = QLabel(f"Size: {pixmap.width()} x {pixmap.height()} px")
+        layout.addWidget(info)
+
+        # 按钮
+        btn_layout = QHBoxLayout()
+        save_png_btn = QPushButton("Save as PNG")
+        save_png_btn.clicked.connect(lambda: self._save_screenshot(pixmap, "PNG", dlg))
+        btn_layout.addWidget(save_png_btn)
+        save_jpg_btn = QPushButton("Save as JPG")
+        save_jpg_btn.clicked.connect(lambda: self._save_screenshot(pixmap, "JPG", dlg))
+        btn_layout.addWidget(save_jpg_btn)
+        btn_layout.addStretch()
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dlg.close)
+        btn_layout.addWidget(close_btn)
+        layout.addLayout(btn_layout)
+
+        dlg.exec()
+
+    def _save_screenshot(self, pixmap, fmt, dialog):
+        """保存截图到文件"""
+        browser = self.tabs.currentWidget()
+        title = browser.title() if browser else "screenshot"
+        # 清理非法文件名字符
+        safe_title = re.sub(r'[\\/:*?"<>|]', "_", title)[:50]
+
+        if fmt == "PNG":
+            path, _ = QFileDialog.getSaveFileName(
+                dialog, "Save Screenshot", f"{safe_title}.png", "PNG (*.png)"
+            )
+            if path:
+                pixmap.save(path, "PNG")
+                self.statusBar().showMessage(f"Screenshot saved: {path}", 3000)
+        else:
+            path, _ = QFileDialog.getSaveFileName(
+                dialog, "Save Screenshot", f"{safe_title}.jpg", "JPEG (*.jpg *.jpeg)"
+            )
+            if path:
+                pixmap.save(path, "JPEG", 90)
+                self.statusBar().showMessage(f"Screenshot saved: {path}", 3000)
 
     # ---- 无痕浏览模式 ----
 

@@ -251,3 +251,13 @@
 - DevTools 窗口引用存储在 self._devtools_window
 - 新增方法: toggle_devtools
 - 测试方法：py_compile 编译通过
+
+## [2026-02-24] - 完成任务: 网页截图功能
+- 在 Tools 菜单添加 "Screenshot (Visible Area)" (Ctrl+Shift+S) 和 "Screenshot (Full Page)"
+- 可见区域截图使用 browser.grab()
+- 全页截图通过 JavaScript 获取页面完整尺寸，临时调整视图大小后截图，再恢复原尺寸
+- 截图预览对话框：带滚动区域显示缩放后的截图预览
+- 支持保存为 PNG 和 JPG 格式（JPG 质量 90）
+- 文件名默认使用页面标题（清理非法字符）
+- 新增方法: screenshot_visible, screenshot_full_page, _on_full_page_size, _capture_and_restore, _show_screenshot_preview, _save_screenshot
+- 测试方法：py_compile 编译通过
