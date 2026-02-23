@@ -199,3 +199,16 @@
 - 新增 import: QCompleter, QStyledItemDelegate, QStringListModel
 - 新增方法: _collect_suggestions, _collect_bookmark_suggestions, _refresh_completer_model, _invalidate_completer_cache, _on_completer_activated
 - 测试方法：py_compile 编译通过
+
+## [2026-02-24] - 完成任务: 标签页固定功能
+- 在标签页右键菜单添加 "Pin Tab" / "Unpin Tab" 选项
+- 固定标签页显示 📌 图标 + 缩短标题（最多 8 字符）
+- 固定标签页自动移到标签栏最左侧（固定区域）
+- 固定标签页无法通过常规方式关闭（close_tab 检查）
+- 右键菜单中固定标签页的 Close 选项灰显
+- 标题更新时自动适配固定/非固定显示格式
+- 固定状态在 session.json 中持久化（pinned 字段）
+- 会话恢复时自动还原固定状态
+- 使用 self._pinned_tabs (set of widget id) 跟踪状态
+- 新增方法: pin_tab, unpin_tab, _pinned_tab_count, _update_pinned_tab_appearance
+- 测试方法：py_compile 编译通过

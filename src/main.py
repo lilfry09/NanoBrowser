@@ -1629,6 +1629,7 @@ class MainWindow(QMainWindow):
 
         # 10. 会话恢复 & 关闭标签页记录
         self._closed_tabs = []  # 最近关闭的标签页 [{"url": ..., "title": ...}, ...]
+        self._pinned_tabs = set()  # 固定的标签页 widget id 集合
         reopen_tab_shortcut = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
         reopen_tab_shortcut.activated.connect(self.reopen_closed_tab)
 
@@ -1803,9 +1804,14 @@ class MainWindow(QMainWindow):
     def update_tab_title(self, title, browser):
         index = self.tabs.indexOf(browser)
         if index != -1:
-            # 缩短非常长的标题
-            display_title = title if len(title) < 30 else title[:27] + "..."
-            self.tabs.setTabText(index, display_title)
+            # 固定标签页使用短标题 + 图钉图标
+            if id(browser) in self._pinned_tabs:
+                short_title = title[:8] + "..." if len(title) > 8 else title
+                self.tabs.setTabText(index, f"\U0001f4cc {short_title}")
+            else:
+                # 缩短非常长的标题
+                display_title = title if len(title) < 30 else title[:27] + "..."
+                self.tabs.setTabText(index, display_title)
             self.tabs.setTabToolTip(index, title)
             if browser == self.tabs.currentWidget():
                 self.setWindowTitle(f"{title} - NanoBrowser")
@@ -1822,6 +1828,13 @@ class MainWindow(QMainWindow):
         self._update_zoom_label(zoom)
 
     def close_tab(self, i):
+        widget = self.tabs.widget(i)
+        if widget and id(widget) in self._pinned_tabs:
+            self.statusBar().showMessage(
+                "Cannot close a pinned tab. Unpin it first.", 2000
+            )
+            return
+
         if self.tabs.count() <= 1:
             # 如果是最后一个标签页，不关闭窗口，而是跳转到主页并重置状态
             widget = self.tabs.widget(i)
@@ -1859,8 +1872,25 @@ class MainWindow(QMainWindow):
             return
 
         menu = QMenu(self)
+        widget = self.tabs.widget(index)
+        is_pinned = widget and id(widget) in self._pinned_tabs
+
+        # 固定/取消固定标签页
+        if is_pinned:
+            unpin_action = QAction("Unpin Tab", self)
+            unpin_action.triggered.connect(lambda: self.unpin_tab(index))
+            menu.addAction(unpin_action)
+        else:
+            pin_action = QAction("Pin Tab", self)
+            pin_action.triggered.connect(lambda: self.pin_tab(index))
+            menu.addAction(pin_action)
+
+        menu.addSeparator()
+
         close_action = QAction("Close Tab", self)
         close_action.triggered.connect(lambda: self.close_tab(index))
+        if is_pinned:
+            close_action.setEnabled(False)
         menu.addAction(close_action)
 
         close_others_action = QAction("Close Other Tabs", self)
@@ -1882,6 +1912,65 @@ class MainWindow(QMainWindow):
         for i in range(self.tabs.count() - 1, -1, -1):
             if i != keep_index and self.tabs.count() > 1:
                 self.close_tab(i)
+
+    # ---- 标签页固定 ----
+
+    def pin_tab(self, index):
+        """固定标签页：移到最左侧，缩短标题，标记为固定"""
+        widget = self.tabs.widget(index)
+        if not widget or id(widget) in self._pinned_tabs:
+            return
+
+        self._pinned_tabs.add(id(widget))
+
+        # 计算应插入的位置：所有已固定标签页之后
+        pin_count = self._pinned_tab_count()
+        target_index = pin_count - 1  # 刚加入集合，所以 -1 就是最后一个固定位置
+
+        # 移动标签页到固定区域末尾
+        if index != target_index:
+            self.tabs.tabBar().moveTab(index, target_index)
+
+        # 更新标签外观
+        self._update_pinned_tab_appearance(target_index, widget, pinned=True)
+
+    def unpin_tab(self, index):
+        """取消固定标签页"""
+        widget = self.tabs.widget(index)
+        if not widget or id(widget) not in self._pinned_tabs:
+            return
+
+        self._pinned_tabs.discard(id(widget))
+
+        # 移到固定区域之后（即当前固定标签页数量的位置）
+        pin_count = self._pinned_tab_count()
+        if index < pin_count:
+            self.tabs.tabBar().moveTab(index, pin_count)
+            index = pin_count
+
+        # 恢复完整标题
+        self._update_pinned_tab_appearance(index, widget, pinned=False)
+
+    def _pinned_tab_count(self):
+        """返回当前固定标签页的数量"""
+        count = 0
+        for i in range(self.tabs.count()):
+            w = self.tabs.widget(i)
+            if w and id(w) in self._pinned_tabs:
+                count += 1
+        return count
+
+    def _update_pinned_tab_appearance(self, index, widget, pinned):
+        """更新固定/非固定标签页的外观"""
+        if pinned:
+            # 显示图钉图标 + 缩短的标题
+            title = widget.title() if widget.title() else self.tabs.tabText(index)
+            short_title = title[:8] + "..." if len(title) > 8 else title
+            self.tabs.setTabText(index, f"\U0001f4cc {short_title}")
+        else:
+            # 恢复完整标题
+            title = widget.title() if widget.title() else "New Tab"
+            self.tabs.setTabText(index, title)
 
     def navigate_home(self):
         if self.tabs.currentWidget():
@@ -2314,8 +2403,13 @@ class MainWindow(QMainWindow):
         for tab_info in tabs_data:
             url = tab_info.get("url", "")
             title = tab_info.get("title", "Loading...")
+            pinned = tab_info.get("pinned", False)
             if url and url != "about:blank":
-                self.add_new_tab(QUrl(url), title)
+                browser = self.add_new_tab(QUrl(url), title)
+                if pinned and browser:
+                    idx = self.tabs.indexOf(browser)
+                    if idx != -1:
+                        self.pin_tab(idx)
 
         # 如果没有恢复任何标签页，打开默认页面
         if self.tabs.count() == 0:
@@ -2332,7 +2426,10 @@ class MainWindow(QMainWindow):
                 url_str = widget.url().toString()
                 title = self.tabs.tabText(i)
                 if url_str and url_str != "about:blank":
-                    tabs_data.append({"url": url_str, "title": title})
+                    tab_info = {"url": url_str, "title": title}
+                    if id(widget) in self._pinned_tabs:
+                        tab_info["pinned"] = True
+                    tabs_data.append(tab_info)
 
         active_index = self.tabs.currentIndex()
         SessionManager.save_session(tabs_data, active_index)
