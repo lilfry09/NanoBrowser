@@ -212,3 +212,18 @@
 - 使用 self._pinned_tabs (set of widget id) 跟踪状态
 - 新增方法: pin_tab, unpin_tab, _pinned_tab_count, _update_pinned_tab_appearance
 - 测试方法：py_compile 编译通过
+
+## [2026-02-24] - 完成任务: 浏览器设置中心
+- 新增 SettingsDialog 类，完整的设置对话框，左侧分类列表 + 右侧分页布局
+- 四个分类页面：
+  - General: 主页设置、搜索引擎、启动行为（恢复会话）、下载位置
+  - Privacy: 弹窗拦截、Do Not Track、JavaScript 开关、清除缓存/Cookie/历史按钮
+  - Appearance: 主题选择（Dark/Light，预留扩展）、默认缩放比例
+  - Advanced: User-Agent 选择、硬件加速、HTTP 代理设置
+- "Restore Defaults" 按钮一键恢复所有默认值
+- OK 保存设置并实时应用，Cancel 放弃修改
+- 应用设置时实时更新：搜索引擎下拉框、UA、JavaScript 开关
+- 入口：Tools > Settings...（Ctrl+,）
+- 新增 import: QCheckBox, QGroupBox, QFormLayout, QListWidget, QStackedWidget, QListWidgetItem, QFrame, QWidget
+- 新增方法: open_settings_dialog, _apply_settings_changes
+- 测试方法：py_compile 编译通过

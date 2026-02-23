@@ -36,6 +36,14 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
     QCompleter,
     QStyledItemDelegate,
+    QCheckBox,
+    QGroupBox,
+    QFormLayout,
+    QListWidget,
+    QStackedWidget,
+    QListWidgetItem,
+    QFrame,
+    QWidget,
 )
 from PyQt6.QtCore import QUrl, Qt, QTimer, QStringListModel
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
@@ -1375,6 +1383,279 @@ class HistoryDialog(QDialog):
             self.load_history()
 
 
+class SettingsDialog(QDialog):
+    """统一的浏览器设置对话框"""
+
+    def __init__(self, settings, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Settings")
+        self.resize(600, 450)
+        self.settings = dict(settings)  # 工作副本
+        self._build_ui()
+
+    def _build_ui(self):
+        layout = QHBoxLayout(self)
+
+        # 左侧分类列表
+        self.category_list = QListWidget()
+        self.category_list.setFixedWidth(140)
+        self.category_list.setSpacing(2)
+        categories = ["General", "Privacy", "Appearance", "Advanced"]
+        for cat in categories:
+            item = QListWidgetItem(cat)
+            self.category_list.addItem(item)
+        self.category_list.currentRowChanged.connect(self._switch_page)
+        layout.addWidget(self.category_list)
+
+        # 右侧分页
+        right_layout = QVBoxLayout()
+        self.pages = QStackedWidget()
+
+        self.pages.addWidget(self._create_general_page())
+        self.pages.addWidget(self._create_privacy_page())
+        self.pages.addWidget(self._create_appearance_page())
+        self.pages.addWidget(self._create_advanced_page())
+
+        right_layout.addWidget(self.pages)
+
+        # 底部按钮
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        restore_btn = QPushButton("Restore Defaults")
+        restore_btn.clicked.connect(self._restore_defaults)
+        btn_layout.addWidget(restore_btn)
+        ok_btn = QPushButton("OK")
+        ok_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(ok_btn)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(cancel_btn)
+        right_layout.addLayout(btn_layout)
+
+        layout.addLayout(right_layout)
+        self.category_list.setCurrentRow(0)
+
+    def _switch_page(self, index):
+        self.pages.setCurrentIndex(index)
+
+    # ---- General ----
+    def _create_general_page(self):
+        page = QWidget()
+        form = QFormLayout(page)
+        form.setSpacing(12)
+
+        # 主页
+        self.homepage_edit = QLineEdit(
+            self.settings.get("homepage", "https://www.bing.com")
+        )
+        form.addRow("Homepage:", self.homepage_edit)
+
+        # 搜索引擎
+        self.engine_combo_setting = QComboBox()
+        self.engine_combo_setting.addItems(["Bing", "Google", "Baidu"])
+        current_engine = self.settings.get("search_engine", "Bing")
+        if current_engine in ["Bing", "Google", "Baidu"]:
+            self.engine_combo_setting.setCurrentText(current_engine)
+        form.addRow("Search Engine:", self.engine_combo_setting)
+
+        # 启动行为
+        self.restore_session_cb = QCheckBox("Restore previous session on startup")
+        self.restore_session_cb.setChecked(self.settings.get("restore_session", True))
+        form.addRow("Startup:", self.restore_session_cb)
+
+        # 下载位置
+        dl_layout = QHBoxLayout()
+        self.download_dir_edit = QLineEdit(
+            self.settings.get("download_dir", os.path.expanduser("~/Downloads"))
+        )
+        dl_browse_btn = QPushButton("Browse...")
+        dl_browse_btn.clicked.connect(self._browse_download_dir)
+        dl_layout.addWidget(self.download_dir_edit)
+        dl_layout.addWidget(dl_browse_btn)
+        form.addRow("Download folder:", dl_layout)
+
+        return page
+
+    def _browse_download_dir(self):
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Download Directory", self.download_dir_edit.text()
+        )
+        if directory:
+            self.download_dir_edit.setText(directory)
+
+    # ---- Privacy ----
+    def _create_privacy_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+
+        group = QGroupBox("Privacy & Security")
+        group_layout = QVBoxLayout(group)
+
+        self.block_popups_cb = QCheckBox("Block pop-up windows")
+        self.block_popups_cb.setChecked(self.settings.get("block_popups", True))
+        group_layout.addWidget(self.block_popups_cb)
+
+        self.do_not_track_cb = QCheckBox("Send 'Do Not Track' request")
+        self.do_not_track_cb.setChecked(self.settings.get("do_not_track", False))
+        group_layout.addWidget(self.do_not_track_cb)
+
+        self.js_enabled_cb = QCheckBox("Enable JavaScript")
+        self.js_enabled_cb.setChecked(self.settings.get("javascript_enabled", True))
+        group_layout.addWidget(self.js_enabled_cb)
+
+        layout.addWidget(group)
+
+        # 清除数据按钮
+        clear_group = QGroupBox("Clear Browsing Data")
+        clear_layout = QVBoxLayout(clear_group)
+        clear_cache_btn = QPushButton("Clear Cache")
+        clear_cache_btn.clicked.connect(self._clear_cache)
+        clear_layout.addWidget(clear_cache_btn)
+        clear_cookies_btn = QPushButton("Clear Cookies")
+        clear_cookies_btn.clicked.connect(self._clear_cookies)
+        clear_layout.addWidget(clear_cookies_btn)
+        clear_history_btn = QPushButton("Clear History")
+        clear_history_btn.clicked.connect(self._clear_history)
+        clear_layout.addWidget(clear_history_btn)
+        layout.addWidget(clear_group)
+
+        layout.addStretch()
+        return page
+
+    def _clear_cache(self):
+        QWebEngineProfile.defaultProfile().clearHttpCache()
+        QMessageBox.information(
+            self, "Cache Cleared", "Browser cache has been cleared."
+        )
+
+    def _clear_cookies(self):
+        QWebEngineProfile.defaultProfile().cookieStore().deleteAllCookies()
+        QMessageBox.information(
+            self, "Cookies Cleared", "All cookies have been cleared."
+        )
+
+    def _clear_history(self):
+        HistoryManager.clear_history()
+        QMessageBox.information(
+            self, "History Cleared", "Browsing history has been cleared."
+        )
+
+    # ---- Appearance ----
+    def _create_appearance_page(self):
+        page = QWidget()
+        form = QFormLayout(page)
+        form.setSpacing(12)
+
+        # 主题选择（为 Task 29 预留扩展点）
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["Dark (Default)", "Light"])
+        current_theme = self.settings.get("theme", "Dark (Default)")
+        if current_theme in ["Dark (Default)", "Light"]:
+            self.theme_combo.setCurrentText(current_theme)
+        form.addRow("Theme:", self.theme_combo)
+
+        # 默认缩放
+        self.default_zoom_combo = QComboBox()
+        zoom_levels = [
+            "50%",
+            "75%",
+            "90%",
+            "100%",
+            "110%",
+            "125%",
+            "150%",
+            "175%",
+            "200%",
+        ]
+        self.default_zoom_combo.addItems(zoom_levels)
+        current_zoom = self.settings.get("default_zoom", "100%")
+        if current_zoom in zoom_levels:
+            self.default_zoom_combo.setCurrentText(current_zoom)
+        else:
+            self.default_zoom_combo.setCurrentText("100%")
+        form.addRow("Default page zoom:", self.default_zoom_combo)
+
+        return page
+
+    # ---- Advanced ----
+    def _create_advanced_page(self):
+        page = QWidget()
+        form = QFormLayout(page)
+        form.setSpacing(12)
+
+        # User-Agent
+        self.ua_combo = QComboBox()
+        ua_names = [
+            "Default (NanoBrowser)",
+            "Chrome (Windows)",
+            "Firefox (Windows)",
+            "Safari (macOS)",
+            "Edge (Windows)",
+            "Chrome (Android)",
+            "Safari (iPhone)",
+        ]
+        self.ua_combo.addItems(ua_names)
+        current_ua = self.settings.get("user_agent", "Default (NanoBrowser)")
+        if current_ua in ua_names:
+            self.ua_combo.setCurrentText(current_ua)
+        form.addRow("User-Agent:", self.ua_combo)
+
+        # 硬件加速
+        self.hw_accel_cb = QCheckBox("Enable hardware acceleration")
+        self.hw_accel_cb.setChecked(self.settings.get("hardware_acceleration", True))
+        form.addRow("Performance:", self.hw_accel_cb)
+
+        # 代理设置（简易文本输入）
+        self.proxy_edit = QLineEdit(self.settings.get("proxy", ""))
+        self.proxy_edit.setPlaceholderText(
+            "e.g. http://127.0.0.1:7890 (leave empty for system proxy)"
+        )
+        form.addRow("HTTP Proxy:", self.proxy_edit)
+
+        return page
+
+    # ---- Restore Defaults ----
+    def _restore_defaults(self):
+        reply = QMessageBox.question(
+            self,
+            "Restore Defaults",
+            "Are you sure you want to restore all settings to defaults?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.homepage_edit.setText("https://www.bing.com")
+        self.engine_combo_setting.setCurrentText("Bing")
+        self.restore_session_cb.setChecked(True)
+        self.download_dir_edit.setText(os.path.expanduser("~/Downloads"))
+        self.block_popups_cb.setChecked(True)
+        self.do_not_track_cb.setChecked(False)
+        self.js_enabled_cb.setChecked(True)
+        self.theme_combo.setCurrentText("Dark (Default)")
+        self.default_zoom_combo.setCurrentText("100%")
+        self.ua_combo.setCurrentText("Default (NanoBrowser)")
+        self.hw_accel_cb.setChecked(True)
+        self.proxy_edit.setText("")
+
+    def get_settings(self):
+        """返回用户修改后的设置字典"""
+        return {
+            "homepage": self.homepage_edit.text().strip() or "https://www.bing.com",
+            "search_engine": self.engine_combo_setting.currentText(),
+            "restore_session": self.restore_session_cb.isChecked(),
+            "download_dir": self.download_dir_edit.text().strip(),
+            "block_popups": self.block_popups_cb.isChecked(),
+            "do_not_track": self.do_not_track_cb.isChecked(),
+            "javascript_enabled": self.js_enabled_cb.isChecked(),
+            "theme": self.theme_combo.currentText(),
+            "default_zoom": self.default_zoom_combo.currentText(),
+            "user_agent": self.ua_combo.currentText(),
+            "hardware_acceleration": self.hw_accel_cb.isChecked(),
+            "proxy": self.proxy_edit.text().strip(),
+        }
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -1574,6 +1855,13 @@ class MainWindow(QMainWindow):
 
         # 应用已保存的 UA
         self._apply_user_agent(current_ua)
+
+        # Settings 菜单项
+        tools_menu.addSeparator()
+        settings_action = QAction("Settings...", self)
+        settings_action.setShortcut(QKeySequence("Ctrl+,"))
+        settings_action.triggered.connect(self.open_settings_dialog)
+        tools_menu.addAction(settings_action)
 
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
@@ -2170,6 +2458,40 @@ class MainWindow(QMainWindow):
         if ua_string:
             QWebEngineProfile.defaultProfile().setHttpUserAgent(ua_string)
         # 空字符串表示使用默认 UA（不做修改）
+
+    # ---- 设置中心 ----
+
+    def open_settings_dialog(self):
+        """打开设置对话框"""
+        dlg = SettingsDialog(self.settings, self)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            new_settings = dlg.get_settings()
+            # 保留之前可能有的额外字段
+            self.settings.update(new_settings)
+            SettingsManager.save_settings(self.settings)
+            self._apply_settings_changes(new_settings)
+
+    def _apply_settings_changes(self, new_settings):
+        """将修改后的设置应用到运行中的浏览器"""
+        # 搜索引擎
+        engine = new_settings.get("search_engine", "Bing")
+        if engine in ["Bing", "Google", "Baidu"]:
+            self.engine_combo.setCurrentText(engine)
+
+        # User-Agent
+        ua_name = new_settings.get("user_agent", "Default (NanoBrowser)")
+        self.set_user_agent(ua_name)
+
+        # JavaScript 开关
+        js_enabled = new_settings.get("javascript_enabled", True)
+        default_settings = QWebEngineProfile.defaultProfile().settings()
+        from PyQt6.QtWebEngineCore import QWebEngineSettings
+
+        default_settings.setAttribute(
+            QWebEngineSettings.WebAttribute.JavascriptEnabled, js_enabled
+        )
+
+        self.statusBar().showMessage("Settings saved.", 2000)
 
     # ---- 无痕浏览模式 ----
 
