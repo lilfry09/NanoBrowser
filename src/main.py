@@ -34,7 +34,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QUrl, Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEngineProfile
+from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 
 from history_manager import HistoryManager
 from bookmark_manager import BookmarkManager
@@ -172,11 +172,16 @@ SEARCH_ENGINES = {
 class WebEngineView(QWebEngineView):
     """
     自定义 WebEngineView，重写 createWindow 方法。
+    支持可选的 QWebEngineProfile (用于无痕模式)。
     """
 
-    def __init__(self, main_window, parent=None):
+    def __init__(self, main_window, profile=None, parent=None):
         super().__init__(parent)
         self._main_window = main_window
+        self._custom_profile = profile
+        if profile:
+            page = QWebEnginePage(profile, self)
+            self.setPage(page)
 
     def createWindow(self, window_type):
         new_view = self._main_window.add_new_tab(QUrl("about:blank"), "Loading...")
@@ -588,6 +593,175 @@ class SourceViewDialog(QDialog):
             self.text_edit.find(text, QTextDocument.FindFlag.FindBackward)
 
 
+class IncognitoWindow(QMainWindow):
+    """无痕浏览窗口 - 使用独立的 off-the-record QWebEngineProfile"""
+
+    def __init__(self, parent_window=None):
+        super().__init__()
+        self._parent_window = parent_window
+        self.setWindowTitle("[Incognito] NanoBrowser")
+        self.setGeometry(150, 150, 1024, 768)
+        self.setStyleSheet(STYLE_SHEET)
+
+        # 使用 off-the-record profile (不保存任何数据到磁盘)
+        self._incognito_profile = QWebEngineProfile(self)
+        self._incognito_profile.setHttpCacheType(
+            QWebEngineProfile.HttpCacheType.NoCache
+        )
+
+        # 标签页
+        self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
+        self.tabs.setTabsClosable(True)
+        self.tabs.tabCloseRequested.connect(self.close_tab)
+        self.tabs.currentChanged.connect(self.current_tab_changed)
+        self.setCentralWidget(self.tabs)
+
+        # 导航栏
+        nav_bar = QToolBar("Navigation")
+        nav_bar.setMovable(False)
+        self.addToolBar(nav_bar)
+
+        back_btn = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowBack), "Back", self
+        )
+        back_btn.triggered.connect(
+            lambda: self.tabs.currentWidget() and self.tabs.currentWidget().back()
+        )
+        nav_bar.addAction(back_btn)
+
+        forward_btn = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowForward),
+            "Forward",
+            self,
+        )
+        forward_btn.triggered.connect(
+            lambda: self.tabs.currentWidget() and self.tabs.currentWidget().forward()
+        )
+        nav_bar.addAction(forward_btn)
+
+        reload_btn = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload),
+            "Reload",
+            self,
+        )
+        reload_btn.triggered.connect(
+            lambda: self.tabs.currentWidget() and self.tabs.currentWidget().reload()
+        )
+        nav_bar.addAction(reload_btn)
+
+        nav_bar.addSeparator()
+
+        self.url_bar = QLineEdit()
+        self.url_bar.setPlaceholderText("[Incognito] Search or enter address")
+        self.url_bar.returnPressed.connect(self.navigate_to_url)
+        nav_bar.addWidget(self.url_bar)
+
+        new_tab_btn = QAction("+", self)
+        new_tab_btn.setToolTip("New Incognito Tab")
+        new_tab_btn.triggered.connect(
+            lambda: self.add_new_tab(QUrl("https://www.bing.com"), "New Tab")
+        )
+        nav_bar.addAction(new_tab_btn)
+
+        # 无痕模式提示
+        self.statusBar().showMessage(
+            "Incognito Mode: History and cookies will not be saved.", 10000
+        )
+
+        # 初始标签页
+        self.add_new_tab(QUrl("https://www.bing.com"), "Incognito Tab")
+
+    def add_new_tab(self, qurl, label):
+        browser = WebEngineView(self, profile=self._incognito_profile)
+
+        def handle_certificate_error(error):
+            error.ignoreCertificateError()
+            return True
+
+        browser.page().certificateError.connect(handle_certificate_error)
+        browser.setUrl(qurl)
+        browser.urlChanged.connect(lambda q: self._update_url_bar(q, browser))
+        browser.titleChanged.connect(
+            lambda title: self._update_tab_title(title, browser)
+        )
+        browser.iconChanged.connect(lambda icon: self._update_tab_icon(icon, browser))
+
+        i = self.tabs.addTab(browser, label)
+        self.tabs.setCurrentIndex(i)
+        return browser
+
+    def _update_url_bar(self, qurl, browser):
+        if browser == self.tabs.currentWidget():
+            url_str = qurl.toString()
+            if url_str != "about:blank":
+                self.url_bar.setText(url_str)
+                self.url_bar.setCursorPosition(0)
+            else:
+                self.url_bar.setText("")
+
+    def _update_tab_title(self, title, browser):
+        index = self.tabs.indexOf(browser)
+        if index != -1:
+            display = title if len(title) < 30 else title[:27] + "..."
+            self.tabs.setTabText(index, display)
+            self.tabs.setTabToolTip(index, title)
+            if browser == self.tabs.currentWidget():
+                self.setWindowTitle(f"[Incognito] {title} - NanoBrowser")
+
+    def _update_tab_icon(self, icon, browser):
+        index = self.tabs.indexOf(browser)
+        if index != -1 and not icon.isNull():
+            self.tabs.setTabIcon(index, icon)
+
+    def current_tab_changed(self, i):
+        if i == -1:
+            return
+        widget = self.tabs.currentWidget()
+        if widget:
+            self._update_url_bar(widget.url(), widget)
+            self.setWindowTitle(f"[Incognito] {widget.title()} - NanoBrowser")
+
+    def close_tab(self, i):
+        if self.tabs.count() <= 1:
+            self.close()
+            return
+        widget = self.tabs.widget(i)
+        self.tabs.removeTab(i)
+        widget.deleteLater()
+
+    def navigate_to_url(self):
+        text = self.url_bar.text().strip()
+        if not text:
+            return
+        is_url = re.match(r"^(http://|https://|file://)", text) or (
+            "." in text and " " not in text
+        )
+        if is_url:
+            if not re.match(r"^[a-zA-Z]+://", text):
+                text = "https://" + text
+            url = text
+        else:
+            url = SEARCH_ENGINES.get("Bing", "https://www.bing.com/search?q={}").format(
+                text
+            )
+        if self.tabs.currentWidget():
+            self.tabs.currentWidget().setUrl(QUrl(url))
+        else:
+            self.add_new_tab(QUrl(url), "Loading...")
+
+    def closeEvent(self, event):
+        """关闭时清除无痕 profile 的所有数据"""
+        self._incognito_profile.clearHttpCache()
+        self._incognito_profile.clearAllVisitedLinks()
+        # 关闭所有标签页
+        while self.tabs.count() > 0:
+            widget = self.tabs.widget(0)
+            self.tabs.removeTab(0)
+            widget.deleteLater()
+        event.accept()
+
+
 class FindInPageBar(QDialog):
     """页面内查找浮动条，类似 Chrome 的 Ctrl+F 查找栏"""
 
@@ -942,6 +1116,14 @@ class MainWindow(QMainWindow):
         view_source_action.setShortcut(QKeySequence("Ctrl+U"))
         view_source_action.triggered.connect(self.view_page_source)
         view_menu.addAction(view_source_action)
+
+        # 6b. 无痕浏览
+        self._incognito_windows = []
+        incognito_action = QAction("New Incognito Window", self)
+        incognito_action.setShortcut(QKeySequence("Ctrl+Shift+N"))
+        incognito_action.triggered.connect(self.open_incognito_window)
+        view_menu.addSeparator()
+        view_menu.addAction(incognito_action)
 
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
@@ -1338,6 +1520,14 @@ class MainWindow(QMainWindow):
     def show_find_bar(self):
         """显示页面内查找栏"""
         self._find_bar.show_bar()
+
+    # ---- 无痕浏览模式 ----
+
+    def open_incognito_window(self):
+        """打开一个新的无痕浏览窗口"""
+        window = IncognitoWindow(self)
+        self._incognito_windows.append(window)
+        window.show()
 
     # ---- 下载管理功能 ----
 

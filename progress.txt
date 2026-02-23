@@ -103,3 +103,16 @@
 - 使用 QWebEnginePage.findText() 内置查找 + 高亮功能
 - 关闭时自动清除页面高亮
 - 测试方法：py_compile 编译通过
+
+## [2026-02-23 14:55:00] - 完成任务: 无痕浏览模式
+- 新增 IncognitoWindow 类，继承 QMainWindow，独立于主窗口
+- 使用 off-the-record QWebEngineProfile（不保存任何数据到磁盘）
+- 设置 HttpCacheType.NoCache 禁用缓存
+- 窗口标题前缀 "[Incognito]" 明确标识无痕模式
+- 地址栏 placeholder 标注 "[Incognito]"
+- 状态栏显示 "Incognito Mode: History and cookies will not be saved."
+- 不调用 HistoryManager.add_history()，不保存浏览记录
+- 关闭窗口时 clearHttpCache + clearAllVisitedLinks 清除所有临时数据
+- 菜单 View > New Incognito Window，支持 Ctrl+Shift+N 快捷键
+- 更新 WebEngineView 支持自定义 profile 参数
+- 测试方法：py_compile 编译通过
