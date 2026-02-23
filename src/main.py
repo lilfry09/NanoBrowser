@@ -44,9 +44,10 @@ from PyQt6.QtWidgets import (
     QListWidgetItem,
     QFrame,
     QWidget,
+    QSplitter,
 )
-from PyQt6.QtCore import QUrl, Qt, QTimer, QStringListModel
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
+from PyQt6.QtCore import QUrl, Qt, QTimer, QStringListModel, QThread, pyqtSignal
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QFont
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 
@@ -54,6 +55,7 @@ from history_manager import HistoryManager
 from bookmark_manager import BookmarkManager
 from download_manager import DownloadManager
 from session_manager import SessionManager
+from feed_reader import FeedManager, FeedParser
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "settings.json")
@@ -1953,6 +1955,301 @@ class CookieManagerDialog(QDialog):
             QMessageBox.information(self, "Done", "All cookies have been deleted.")
 
 
+# ---- RSS Feed Worker (后台线程获取 Feed) ----
+
+
+class FeedFetchWorker(QThread):
+    """后台线程：获取并解析一个 RSS/Atom Feed"""
+
+    finished = pyqtSignal(str, dict)  # (feed_url, parsed_data)
+    error = pyqtSignal(str, str)  # (feed_url, error_message)
+
+    def __init__(self, feed_url: str, parent=None):
+        super().__init__(parent)
+        self.feed_url = feed_url
+
+    def run(self):
+        xml_text = FeedManager.fetch_feed(self.feed_url)
+        if not xml_text:
+            self.error.emit(self.feed_url, "Failed to fetch feed.")
+            return
+        parsed = FeedParser.parse(xml_text)
+        if not parsed.get("title") and not parsed.get("articles"):
+            self.error.emit(
+                self.feed_url, "Could not parse feed. Invalid RSS/Atom format."
+            )
+            return
+        self.finished.emit(self.feed_url, parsed)
+
+
+class FeedReaderDialog(QDialog):
+    """RSS/Atom 订阅阅读器对话框"""
+
+    # 当用户点击文章链接时，通知 MainWindow 在浏览器中打开
+    open_url_requested = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("RSS Reader")
+        self.setMinimumSize(800, 500)
+        self.resize(900, 600)
+        self._workers = []  # 保持 worker 引用防止被 GC
+
+        self._init_ui()
+        self._load_feeds()
+
+    def _init_ui(self):
+        layout = QVBoxLayout(self)
+
+        # 顶部按钮栏
+        btn_layout = QHBoxLayout()
+        self.add_btn = QPushButton("Add Feed")
+        self.add_btn.clicked.connect(self._add_feed)
+        self.remove_btn = QPushButton("Remove Feed")
+        self.remove_btn.clicked.connect(self._remove_feed)
+        self.refresh_btn = QPushButton("Refresh All")
+        self.refresh_btn.clicked.connect(self._refresh_all)
+        self.mark_read_btn = QPushButton("Mark All Read")
+        self.mark_read_btn.clicked.connect(self._mark_all_read)
+        btn_layout.addWidget(self.add_btn)
+        btn_layout.addWidget(self.remove_btn)
+        btn_layout.addWidget(self.refresh_btn)
+        btn_layout.addWidget(self.mark_read_btn)
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+
+        # 主区域：左侧 feed 列表 + 右侧文章列表
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        # 左侧：Feed 列表
+        self.feed_list = QListWidget()
+        self.feed_list.currentRowChanged.connect(self._on_feed_selected)
+        splitter.addWidget(self.feed_list)
+
+        # 右侧：文章列表
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.article_table = QTableWidget()
+        self.article_table.setColumnCount(3)
+        self.article_table.setHorizontalHeaderLabels(["Title", "Published", "Status"])
+        self.article_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Stretch
+        )
+        self.article_table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.article_table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.article_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.article_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self.article_table.doubleClicked.connect(self._on_article_double_clicked)
+        right_layout.addWidget(self.article_table)
+
+        # 文章摘要区域
+        self.summary_label = QTextEdit()
+        self.summary_label.setReadOnly(True)
+        self.summary_label.setMaximumHeight(120)
+        self.summary_label.setPlaceholderText("Select an article to see its summary...")
+        right_layout.addWidget(self.summary_label)
+
+        self.article_table.currentCellChanged.connect(self._on_article_selected)
+
+        splitter.addWidget(right_widget)
+        splitter.setSizes([250, 650])
+
+        layout.addWidget(splitter)
+
+        # 底部状态
+        self.status_label = QLabel("Ready")
+        layout.addWidget(self.status_label)
+
+    def _load_feeds(self):
+        """从文件加载 feed 列表并刷新 UI"""
+        self.feeds = FeedManager.load_feeds()
+        self._update_feed_list()
+
+    def _update_feed_list(self):
+        """刷新左侧 feed 列表显示"""
+        current_row = self.feed_list.currentRow()
+        self.feed_list.clear()
+        for feed in self.feeds:
+            unread = FeedManager.get_unread_count(feed)
+            total = len(feed.get("articles", []))
+            title = feed.get("title", feed.get("url", "Unknown"))
+            display = f"{title}  ({unread}/{total})"
+            self.feed_list.addItem(display)
+        if current_row >= 0 and current_row < self.feed_list.count():
+            self.feed_list.setCurrentRow(current_row)
+
+    def _add_feed(self):
+        """添加新的订阅源"""
+        url, ok = QInputDialog.getText(self, "Add RSS Feed", "Enter feed URL:")
+        if ok and url.strip():
+            url = url.strip()
+            # 检查是否已存在
+            for f in self.feeds:
+                if f["url"] == url:
+                    QMessageBox.information(self, "Info", "This feed already exists.")
+                    return
+            self.status_label.setText(f"Fetching: {url}...")
+            self.feeds = FeedManager.add_feed(url)
+            self._update_feed_list()
+            # 立即刷新这个 feed
+            self._fetch_single_feed(url)
+
+    def _remove_feed(self):
+        """删除选中的订阅源"""
+        row = self.feed_list.currentRow()
+        if row < 0 or row >= len(self.feeds):
+            return
+        feed = self.feeds[row]
+        reply = QMessageBox.question(
+            self,
+            "Remove Feed",
+            f"Remove '{feed.get('title', feed['url'])}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.feeds = FeedManager.remove_feed(feed["url"])
+            self._update_feed_list()
+            self.article_table.setRowCount(0)
+            self.summary_label.clear()
+            self.status_label.setText("Feed removed.")
+
+    def _refresh_all(self):
+        """刷新所有订阅源"""
+        if not self.feeds:
+            self.status_label.setText("No feeds to refresh.")
+            return
+        self.status_label.setText("Refreshing all feeds...")
+        for feed in self.feeds:
+            self._fetch_single_feed(feed["url"])
+
+    def _fetch_single_feed(self, url: str):
+        """在后台线程中获取一个 feed"""
+        worker = FeedFetchWorker(url, self)
+        worker.finished.connect(self._on_feed_fetched)
+        worker.error.connect(self._on_feed_error)
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+        worker.error.connect(lambda: self._cleanup_worker(worker))
+        self._workers.append(worker)
+        worker.start()
+
+    def _cleanup_worker(self, worker):
+        """清理已完成的 worker"""
+        if worker in self._workers:
+            self._workers.remove(worker)
+
+    def _on_feed_fetched(self, feed_url: str, parsed_data: dict):
+        """后台获取完成的回调"""
+        self.feeds = FeedManager.update_feed(feed_url, parsed_data)
+        self._update_feed_list()
+        # 如果当前选中的就是这个 feed，刷新文章列表
+        row = self.feed_list.currentRow()
+        if 0 <= row < len(self.feeds) and self.feeds[row]["url"] == feed_url:
+            self._show_articles(self.feeds[row])
+        self.status_label.setText(
+            f"Updated: {parsed_data.get('title', feed_url)} "
+            f"({len(parsed_data.get('articles', []))} articles)"
+        )
+
+    def _on_feed_error(self, feed_url: str, error_msg: str):
+        """后台获取失败的回调"""
+        self.status_label.setText(f"Error ({feed_url}): {error_msg}")
+
+    def _on_feed_selected(self, row: int):
+        """左侧 feed 列表选中变化"""
+        if row < 0 or row >= len(self.feeds):
+            self.article_table.setRowCount(0)
+            self.summary_label.clear()
+            return
+        self._show_articles(self.feeds[row])
+
+    def _show_articles(self, feed: dict):
+        """显示某个 feed 的文章列表"""
+        articles = feed.get("articles", [])
+        read_links = set(feed.get("read_links", []))
+        self.article_table.setRowCount(len(articles))
+        bold_font = QFont()
+        bold_font.setBold(True)
+        normal_font = QFont()
+
+        for i, article in enumerate(articles):
+            is_read = article.get("link", "") in read_links
+
+            title_item = QTableWidgetItem(article.get("title", "No Title"))
+            pub_item = QTableWidgetItem(article.get("published", ""))
+            status_item = QTableWidgetItem("Read" if is_read else "Unread")
+
+            if not is_read:
+                title_item.setFont(bold_font)
+                status_item.setFont(bold_font)
+            else:
+                title_item.setFont(normal_font)
+                status_item.setFont(normal_font)
+
+            self.article_table.setItem(i, 0, title_item)
+            self.article_table.setItem(i, 1, pub_item)
+            self.article_table.setItem(i, 2, status_item)
+
+        self.summary_label.clear()
+
+    def _on_article_selected(self, row, col, prev_row, prev_col):
+        """文章选中变化，显示摘要"""
+        feed_row = self.feed_list.currentRow()
+        if feed_row < 0 or feed_row >= len(self.feeds):
+            return
+        feed = self.feeds[feed_row]
+        articles = feed.get("articles", [])
+        if row < 0 or row >= len(articles):
+            self.summary_label.clear()
+            return
+        summary = articles[row].get("summary", "")
+        # summary 可能包含 HTML，用 setHtml 显示
+        if "<" in summary and ">" in summary:
+            self.summary_label.setHtml(summary)
+        else:
+            self.summary_label.setPlainText(summary)
+
+    def _on_article_double_clicked(self, index):
+        """双击文章，在浏览器中打开并标记已读"""
+        row = index.row()
+        feed_row = self.feed_list.currentRow()
+        if feed_row < 0 or feed_row >= len(self.feeds):
+            return
+        feed = self.feeds[feed_row]
+        articles = feed.get("articles", [])
+        if row < 0 or row >= len(articles):
+            return
+        article = articles[row]
+        link = article.get("link", "")
+        if link:
+            # 标记已读
+            self.feeds = FeedManager.mark_article_read(feed["url"], link)
+            self._update_feed_list()
+            self._show_articles(self.feeds[feed_row])
+            # 通知 MainWindow 打开 URL
+            self.open_url_requested.emit(link)
+
+    def _mark_all_read(self):
+        """标记当前 feed 所有文章为已读"""
+        row = self.feed_list.currentRow()
+        if row < 0 or row >= len(self.feeds):
+            return
+        feed = self.feeds[row]
+        self.feeds = FeedManager.mark_all_read(feed["url"])
+        self._update_feed_list()
+        self._show_articles(self.feeds[row])
+        self.status_label.setText(
+            f"All articles marked as read: {feed.get('title', '')}"
+        )
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -2215,6 +2512,12 @@ class MainWindow(QMainWindow):
         restore_action = QAction("Show Original Page", self)
         restore_action.triggered.connect(self.restore_original_page)
         translate_menu.addAction(restore_action)
+
+        # 6d. RSS Reader 菜单项
+        tools_menu.addSeparator()
+        rss_action = QAction("RSS Reader...", self)
+        rss_action.triggered.connect(self.show_rss_reader)
+        tools_menu.addAction(rss_action)
 
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
@@ -3042,6 +3345,18 @@ class MainWindow(QMainWindow):
             browser.setUrl(QUrl(original))
             self.statusBar().showMessage("Restored original page.", 3000)
         self._original_url_before_translate = None
+
+    # ---- RSS 阅读器 ----
+
+    def show_rss_reader(self):
+        """显示 RSS 阅读器对话框"""
+        dialog = FeedReaderDialog(self)
+        dialog.open_url_requested.connect(self._on_rss_open_url)
+        dialog.exec()
+
+    def _on_rss_open_url(self, url: str):
+        """从 RSS 阅读器打开文章链接"""
+        self.add_new_tab(QUrl(url), "Loading...")
 
     # ---- 无痕浏览模式 ----
 

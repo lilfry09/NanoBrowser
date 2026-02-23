@@ -272,3 +272,22 @@
 - 新增方法: translate_page(target_lang), restore_original_page()
 - 初始化 self._original_url_before_translate = None
 - 测试方法：py_compile 编译通过
+
+## [2026-02-24] - 完成任务: RSS 订阅阅读器
+- 创建 src/feed_reader.py 模块：
+  - FeedParser 类：支持解析 RSS 2.0 和 Atom 1.0 格式，使用 xml.etree.ElementTree（无外部依赖）
+  - FeedManager 类：管理订阅源 CRUD、文章已读状态、未读计数，数据持久化到 feeds.json
+  - FeedManager.fetch_feed()：使用 urllib 同步获取 feed XML 内容
+- 在 main.py 添加 FeedFetchWorker(QThread)：后台线程异步获取 feed，避免阻塞 UI
+- 在 main.py 添加 FeedReaderDialog(QDialog)：
+  - 左侧 QListWidget 显示订阅源列表，含未读/总数显示（如 "Feed Name (3/10)"）
+  - 右侧 QTableWidget 显示文章列表（Title, Published, Status 三列）
+  - 底部 QTextEdit 显示文章摘要（支持 HTML 和纯文本）
+  - QSplitter 分割左右面板
+  - Add Feed / Remove Feed / Refresh All / Mark All Read 按钮
+  - 双击文章：标记已读 + 在浏览器新标签页中打开链接
+  - 未读文章标题加粗显示
+- 在 Tools 菜单添加 "RSS Reader..." 选项
+- MainWindow 新增方法: show_rss_reader(), _on_rss_open_url(url)
+- 新增导入: QThread, pyqtSignal, QFont, QSplitter, FeedManager, FeedParser
+- 测试方法：py_compile 编译通过（feed_reader.py + main.py）

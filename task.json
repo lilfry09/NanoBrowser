@@ -355,7 +355,7 @@
         "显示未读文章数量，支持标记已读",
         "保存订阅数据到 feeds.json"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 28,
