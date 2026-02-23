@@ -1505,22 +1505,137 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(group)
 
-        # 清除数据按钮
+        # 清除浏览数据（支持时间范围）
         clear_group = QGroupBox("Clear Browsing Data")
         clear_layout = QVBoxLayout(clear_group)
-        clear_cache_btn = QPushButton("Clear Cache")
-        clear_cache_btn.clicked.connect(self._clear_cache)
-        clear_layout.addWidget(clear_cache_btn)
-        clear_cookies_btn = QPushButton("Clear Cookies")
-        clear_cookies_btn.clicked.connect(self._clear_cookies)
-        clear_layout.addWidget(clear_cookies_btn)
-        clear_history_btn = QPushButton("Clear History")
-        clear_history_btn.clicked.connect(self._clear_history)
-        clear_layout.addWidget(clear_history_btn)
+
+        range_layout = QHBoxLayout()
+        range_layout.addWidget(QLabel("Time range:"))
+        self.time_range_combo = QComboBox()
+        self.time_range_combo.addItems(
+            ["Last hour", "Today", "Today and yesterday", "Last 7 days", "All time"]
+        )
+        self.time_range_combo.setCurrentIndex(4)  # 默认 All time
+        range_layout.addWidget(self.time_range_combo)
+        clear_layout.addLayout(range_layout)
+
+        self.clear_cache_cb = QCheckBox("Cache")
+        self.clear_cache_cb.setChecked(True)
+        clear_layout.addWidget(self.clear_cache_cb)
+        self.clear_cookies_cb = QCheckBox("Cookies")
+        self.clear_cookies_cb.setChecked(True)
+        clear_layout.addWidget(self.clear_cookies_cb)
+        self.clear_history_cb = QCheckBox("Browsing history")
+        self.clear_history_cb.setChecked(True)
+        clear_layout.addWidget(self.clear_history_cb)
+        self.clear_downloads_cb = QCheckBox("Download records")
+        self.clear_downloads_cb.setChecked(False)
+        clear_layout.addWidget(self.clear_downloads_cb)
+
+        clear_data_btn = QPushButton("Clear Data")
+        clear_data_btn.clicked.connect(self._clear_selected_data)
+        clear_layout.addWidget(clear_data_btn)
         layout.addWidget(clear_group)
+
+        # Cookie 管理器入口
+        cookie_group = QGroupBox("Cookie Management")
+        cookie_layout = QVBoxLayout(cookie_group)
+        manage_cookies_btn = QPushButton("Manage Cookies...")
+        manage_cookies_btn.clicked.connect(self._open_cookie_manager)
+        cookie_layout.addWidget(manage_cookies_btn)
+        layout.addWidget(cookie_group)
 
         layout.addStretch()
         return page
+
+    def _get_time_cutoff(self):
+        """根据时间范围选择返回截止时间字符串 (YYYY-MM-DD HH:MM:SS)"""
+        import datetime
+
+        now = datetime.datetime.now()
+        idx = self.time_range_combo.currentIndex()
+        if idx == 0:  # Last hour
+            cutoff = now - datetime.timedelta(hours=1)
+        elif idx == 1:  # Today
+            cutoff = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif idx == 2:  # Today and yesterday
+            cutoff = (now - datetime.timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+        elif idx == 3:  # Last 7 days
+            cutoff = now - datetime.timedelta(days=7)
+        else:  # All time
+            return None
+        return cutoff.strftime("%Y-%m-%d %H:%M:%S")
+
+    def _clear_selected_data(self):
+        """清除用户选中的浏览数据"""
+        items = []
+        if self.clear_cache_cb.isChecked():
+            items.append("cache")
+        if self.clear_cookies_cb.isChecked():
+            items.append("cookies")
+        if self.clear_history_cb.isChecked():
+            items.append("history")
+        if self.clear_downloads_cb.isChecked():
+            items.append("download records")
+
+        if not items:
+            QMessageBox.information(
+                self, "Nothing Selected", "Please select data types to clear."
+            )
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Clear Browsing Data",
+            f"Clear {', '.join(items)} ({self.time_range_combo.currentText()})?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        cutoff = self._get_time_cutoff()
+
+        if self.clear_cache_cb.isChecked():
+            QWebEngineProfile.defaultProfile().clearHttpCache()
+
+        if self.clear_cookies_cb.isChecked():
+            QWebEngineProfile.defaultProfile().cookieStore().deleteAllCookies()
+
+        if self.clear_history_cb.isChecked():
+            if cutoff is None:
+                HistoryManager.clear_history()
+            else:
+                # 按时间范围清除历史
+                history = HistoryManager.load_history()
+                filtered = [h for h in history if h.get("time", "") < cutoff]
+                try:
+                    import json as _json
+
+                    with open(
+                        os.path.join(
+                            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            "history.json",
+                        ),
+                        "w",
+                        encoding="utf-8",
+                    ) as f:
+                        _json.dump(filtered, f, ensure_ascii=False, indent=2)
+                except IOError:
+                    pass
+
+        if self.clear_downloads_cb.isChecked():
+            DownloadManager.clear_downloads()
+
+        QMessageBox.information(
+            self, "Done", "Selected browsing data has been cleared."
+        )
+
+    def _open_cookie_manager(self):
+        """打开 Cookie 管理对话框"""
+        dlg = CookieManagerDialog(self)
+        dlg.exec()
 
     def _clear_cache(self):
         QWebEngineProfile.defaultProfile().clearHttpCache()
@@ -1654,6 +1769,188 @@ class SettingsDialog(QDialog):
             "hardware_acceleration": self.hw_accel_cb.isChecked(),
             "proxy": self.proxy_edit.text().strip(),
         }
+
+
+class CookieManagerDialog(QDialog):
+    """Cookie 管理对话框 - 显示所有网站的 Cookies，支持按站点删除"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Cookie Manager")
+        self.resize(650, 450)
+        self._cookies = {}  # domain -> [cookie_info, ...]
+        self._build_ui()
+        self._load_cookies()
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+
+        # 搜索栏
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("Search:"))
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Filter by domain...")
+        self.search_input.textChanged.connect(self._filter_cookies)
+        search_layout.addWidget(self.search_input)
+        layout.addLayout(search_layout)
+
+        # Cookie 列表
+        self.cookie_table = QTableWidget()
+        self.cookie_table.setColumnCount(4)
+        self.cookie_table.setHorizontalHeaderLabels(
+            ["Domain", "Name", "Value", "Expires"]
+        )
+        self.cookie_table.horizontalHeader().setStretchLastSection(True)
+        self.cookie_table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.cookie_table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.cookie_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self.cookie_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        layout.addWidget(self.cookie_table)
+
+        # 状态栏
+        self.status_label = QLabel("Loading cookies...")
+        layout.addWidget(self.status_label)
+
+        # 按钮区
+        btn_layout = QHBoxLayout()
+        delete_selected_btn = QPushButton("Delete Selected")
+        delete_selected_btn.clicked.connect(self._delete_selected)
+        btn_layout.addWidget(delete_selected_btn)
+
+        delete_domain_btn = QPushButton("Delete by Domain")
+        delete_domain_btn.clicked.connect(self._delete_by_domain)
+        btn_layout.addWidget(delete_domain_btn)
+
+        delete_all_btn = QPushButton("Delete All Cookies")
+        delete_all_btn.clicked.connect(self._delete_all)
+        btn_layout.addWidget(delete_all_btn)
+
+        btn_layout.addStretch()
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.close)
+        btn_layout.addWidget(close_btn)
+        layout.addLayout(btn_layout)
+
+    def _load_cookies(self):
+        """通过 CookieStore 监听获取所有 cookies"""
+        self._cookie_list = []  # 存储原始 QNetworkCookie 对象
+        self._raw_cookies = []  # [(domain, name, value, expiry), ...]
+        cookie_store = QWebEngineProfile.defaultProfile().cookieStore()
+        cookie_store.cookieAdded.connect(self._on_cookie_added)
+        # 触发加载所有 cookies
+        cookie_store.loadAllCookies()
+        # 延迟更新 UI（等 cookies 信号触发）
+        QTimer.singleShot(500, self._refresh_table)
+
+    def _on_cookie_added(self, cookie):
+        """收到 cookie 信号时记录"""
+        domain = cookie.domain()
+        name = cookie.name().data().decode("utf-8", errors="replace")
+        value = cookie.value().data().decode("utf-8", errors="replace")
+        expiry = (
+            cookie.expirationDate().toString("yyyy-MM-dd HH:mm")
+            if cookie.expirationDate().isValid()
+            else "Session"
+        )
+        self._raw_cookies.append((domain, name, value, expiry))
+        self._cookie_list.append(cookie)
+
+    def _refresh_table(self):
+        """刷新表格显示"""
+        self.cookie_table.setRowCount(0)
+        for domain, name, value, expiry in self._raw_cookies:
+            row = self.cookie_table.rowCount()
+            self.cookie_table.insertRow(row)
+            self.cookie_table.setItem(row, 0, QTableWidgetItem(domain))
+            self.cookie_table.setItem(row, 1, QTableWidgetItem(name))
+            # 截断过长的 value
+            display_value = value[:80] + "..." if len(value) > 80 else value
+            self.cookie_table.setItem(row, 2, QTableWidgetItem(display_value))
+            self.cookie_table.setItem(row, 3, QTableWidgetItem(expiry))
+
+        self.status_label.setText(f"Total: {len(self._raw_cookies)} cookies")
+
+    def _filter_cookies(self, text):
+        """按域名过滤显示"""
+        text = text.lower()
+        for row in range(self.cookie_table.rowCount()):
+            domain_item = self.cookie_table.item(row, 0)
+            if domain_item:
+                match = text in domain_item.text().lower()
+                self.cookie_table.setRowHidden(row, not match)
+
+    def _delete_selected(self):
+        """删除选中的 cookies"""
+        rows = set()
+        for item in self.cookie_table.selectedItems():
+            rows.add(item.row())
+        if not rows:
+            QMessageBox.information(
+                self, "No Selection", "Please select cookies to delete."
+            )
+            return
+
+        cookie_store = QWebEngineProfile.defaultProfile().cookieStore()
+        for row in sorted(rows, reverse=True):
+            if 0 <= row < len(self._cookie_list):
+                cookie_store.deleteCookie(self._cookie_list[row])
+        QMessageBox.information(self, "Done", f"Deleted {len(rows)} cookie(s).")
+        # 重新加载
+        self._raw_cookies.clear()
+        self._cookie_list.clear()
+        cookie_store.loadAllCookies()
+        QTimer.singleShot(500, self._refresh_table)
+
+    def _delete_by_domain(self):
+        """删除指定域名的所有 cookies"""
+        rows = self.cookie_table.selectedItems()
+        if not rows:
+            domain, ok = QInputDialog.getText(
+                self, "Delete by Domain", "Enter domain name:"
+            )
+        else:
+            domain = self.cookie_table.item(rows[0].row(), 0).text()
+            ok = True
+
+        if not ok or not domain.strip():
+            return
+
+        domain = domain.strip()
+        cookie_store = QWebEngineProfile.defaultProfile().cookieStore()
+        count = 0
+        for i, cookie in enumerate(self._cookie_list):
+            if cookie.domain() == domain or cookie.domain().endswith("." + domain):
+                cookie_store.deleteCookie(cookie)
+                count += 1
+
+        QMessageBox.information(
+            self, "Done", f"Deleted {count} cookie(s) for '{domain}'."
+        )
+        self._raw_cookies.clear()
+        self._cookie_list.clear()
+        cookie_store.loadAllCookies()
+        QTimer.singleShot(500, self._refresh_table)
+
+    def _delete_all(self):
+        """删除所有 cookies"""
+        reply = QMessageBox.question(
+            self,
+            "Delete All Cookies",
+            "Are you sure you want to delete ALL cookies?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            QWebEngineProfile.defaultProfile().cookieStore().deleteAllCookies()
+            self._raw_cookies.clear()
+            self._cookie_list.clear()
+            QTimer.singleShot(500, self._refresh_table)
+            QMessageBox.information(self, "Done", "All cookies have been deleted.")
 
 
 class MainWindow(QMainWindow):
@@ -1862,6 +2159,10 @@ class MainWindow(QMainWindow):
         settings_action.setShortcut(QKeySequence("Ctrl+,"))
         settings_action.triggered.connect(self.open_settings_dialog)
         tools_menu.addAction(settings_action)
+
+        cookie_manager_action = QAction("Cookie Manager...", self)
+        cookie_manager_action.triggered.connect(self.open_cookie_manager)
+        tools_menu.addAction(cookie_manager_action)
 
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
@@ -2492,6 +2793,11 @@ class MainWindow(QMainWindow):
         )
 
         self.statusBar().showMessage("Settings saved.", 2000)
+
+    def open_cookie_manager(self):
+        """打开 Cookie 管理对话框"""
+        dlg = CookieManagerDialog(self)
+        dlg.exec()
 
     # ---- 无痕浏览模式 ----
 

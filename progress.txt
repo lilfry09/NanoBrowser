@@ -227,3 +227,18 @@
 - 新增 import: QCheckBox, QGroupBox, QFormLayout, QListWidget, QStackedWidget, QListWidgetItem, QFrame, QWidget
 - 新增方法: open_settings_dialog, _apply_settings_changes
 - 测试方法：py_compile 编译通过
+
+## [2026-02-24] - 完成任务: Cookie 和缓存管理
+- 增强 SettingsDialog 隐私页面：
+  - 添加时间范围选择器（Last hour / Today / Today and yesterday / Last 7 days / All time）
+  - 可选清除类型：Cache / Cookies / History / Download records
+  - "Clear Data" 按钮一键清除选中数据
+  - "Manage Cookies..." 按钮打开独立的 Cookie 管理对话框
+- 新增 CookieManagerDialog 类：
+  - 显示所有网站的 Cookies（域名、名称、值、过期时间）
+  - 搜索栏按域名实时过滤
+  - 支持删除选中 Cookie、按域名删除、删除所有 Cookies
+  - 通过 QWebEngineProfile cookieStore().cookieAdded 信号收集 cookies
+- 在 Tools 菜单添加 "Cookie Manager..." 入口
+- 历史记录支持按时间范围清除（保留截止时间之前的记录）
+- 测试方法：py_compile 编译通过

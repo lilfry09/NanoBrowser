@@ -302,7 +302,7 @@
         "添加 Cookie 管理对话框，显示所有网站的 Cookies",
         "支持按网站删除特定 Cookie"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 24,
