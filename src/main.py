@@ -736,6 +736,26 @@ class MainWindow(QMainWindow):
         zoom_reset_shortcut = QShortcut(QKeySequence("Ctrl+0"), self)
         zoom_reset_shortcut.activated.connect(self.zoom_reset)
 
+        # 8. 全屏浏览模式
+        self._is_fullscreen = False
+        self._nav_bar = nav_bar  # 保存导航栏引用
+        fullscreen_shortcut = QShortcut(QKeySequence("F11"), self)
+        fullscreen_shortcut.activated.connect(self.toggle_fullscreen)
+
+        # 全屏退出提示标签
+        self._fullscreen_tip = QLabel("Press F11 to exit fullscreen", self)
+        self._fullscreen_tip.setStyleSheet(
+            "background-color: rgba(0, 0, 0, 180); color: white; "
+            "padding: 10px 20px; border-radius: 8px; font-size: 14px;"
+        )
+        self._fullscreen_tip.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._fullscreen_tip.hide()
+
+        # 提示自动消失定时器
+        self._fullscreen_tip_timer = QTimer(self)
+        self._fullscreen_tip_timer.setSingleShot(True)
+        self._fullscreen_tip_timer.timeout.connect(self._fullscreen_tip.hide)
+
         # 初始化时，先清空可能存在的缓存以解决某些情况下的网页打不开
         QWebEngineProfile.defaultProfile().clearHttpCache()
 
@@ -1002,6 +1022,62 @@ class MainWindow(QMainWindow):
     def _update_zoom_label(self, factor):
         """更新状态栏中的缩放比例显示"""
         self.zoom_label.setText(f"{int(factor * 100)}%")
+
+    # ---- 全屏浏览模式 ----
+
+    def toggle_fullscreen(self):
+        """切换全屏/正常模式"""
+        if self._is_fullscreen:
+            self.exit_fullscreen()
+        else:
+            self.enter_fullscreen()
+
+    def enter_fullscreen(self):
+        """进入全屏模式"""
+        self._is_fullscreen = True
+        self._nav_bar.hide()
+        self.tabs.tabBar().hide()
+        self.menuBar().hide()
+        self.statusBar().hide()
+        self.showFullScreen()
+
+        # 显示退出提示
+        self._show_fullscreen_tip()
+
+    def exit_fullscreen(self):
+        """退出全屏模式"""
+        self._is_fullscreen = False
+        self._nav_bar.show()
+        self.tabs.tabBar().show()
+        self.menuBar().show()
+        self.statusBar().show()
+        self.showNormal()
+        self._fullscreen_tip.hide()
+        self._fullscreen_tip_timer.stop()
+
+    def _show_fullscreen_tip(self):
+        """显示全屏提示，3 秒后自动消失"""
+        self._fullscreen_tip.adjustSize()
+        # 居中显示
+        x = (self.width() - self._fullscreen_tip.width()) // 2
+        y = 50
+        self._fullscreen_tip.move(x, y)
+        self._fullscreen_tip.show()
+        self._fullscreen_tip.raise_()
+        self._fullscreen_tip_timer.start(3000)
+
+    def mouseMoveEvent(self, event):
+        """全屏模式下鼠标移到顶部时暂时显示工具栏"""
+        super().mouseMoveEvent(event)
+        if self._is_fullscreen:
+            if event.pos().y() <= 5:
+                self._nav_bar.show()
+                self.tabs.tabBar().show()
+                self.menuBar().show()
+            elif event.pos().y() > 100:
+                self._nav_bar.hide()
+                self.tabs.tabBar().hide()
+                self.menuBar().hide()
 
     # ---- 下载管理功能 ----
 
