@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
     QStatusBar,
 )
 from PyQt6.QtCore import QUrl, Qt, QTimer
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 
@@ -718,6 +718,24 @@ class MainWindow(QMainWindow):
             self.on_download_requested
         )
 
+        # 7. 页面缩放 - 每个标签页独立缩放比例
+        self._tab_zoom_factors = {}  # {tab_widget_id: zoom_factor}
+
+        # 状态栏缩放显示
+        self.zoom_label = QLabel("100%")
+        self.zoom_label.setStyleSheet("padding: 0 8px; font-size: 12px;")
+        self.statusBar().addPermanentWidget(self.zoom_label)
+
+        # 缩放快捷键
+        zoom_in_shortcut = QShortcut(QKeySequence("Ctrl++"), self)
+        zoom_in_shortcut.activated.connect(self.zoom_in)
+        zoom_in_shortcut2 = QShortcut(QKeySequence("Ctrl+="), self)
+        zoom_in_shortcut2.activated.connect(self.zoom_in)
+        zoom_out_shortcut = QShortcut(QKeySequence("Ctrl+-"), self)
+        zoom_out_shortcut.activated.connect(self.zoom_out)
+        zoom_reset_shortcut = QShortcut(QKeySequence("Ctrl+0"), self)
+        zoom_reset_shortcut.activated.connect(self.zoom_reset)
+
         # 初始化时，先清空可能存在的缓存以解决某些情况下的网页打不开
         QWebEngineProfile.defaultProfile().clearHttpCache()
 
@@ -856,6 +874,9 @@ class MainWindow(QMainWindow):
         qurl = widget.url()
         self.update_url_bar(qurl, widget)
         self.setWindowTitle(f"{widget.title()} - NanoBrowser")
+        # 更新缩放标签
+        zoom = self._tab_zoom_factors.get(id(widget), 1.0)
+        self._update_zoom_label(zoom)
 
     def close_tab(self, i):
         if self.tabs.count() <= 1:
@@ -868,6 +889,7 @@ class MainWindow(QMainWindow):
 
         widget = self.tabs.widget(i)
         self.tabs.removeTab(i)
+        self._tab_zoom_factors.pop(id(widget), None)
         widget.deleteLater()
 
     def show_tab_context_menu(self, point):
@@ -946,6 +968,40 @@ class MainWindow(QMainWindow):
     def navigate_reload(self):
         if self.tabs.currentWidget():
             self.tabs.currentWidget().reload()
+
+    # ---- 页面缩放功能 ----
+
+    def zoom_in(self):
+        """放大当前标签页"""
+        browser = self.tabs.currentWidget()
+        if browser:
+            current = browser.zoomFactor()
+            new_zoom = min(current + 0.1, 5.0)
+            browser.setZoomFactor(new_zoom)
+            self._tab_zoom_factors[id(browser)] = new_zoom
+            self._update_zoom_label(new_zoom)
+
+    def zoom_out(self):
+        """缩小当前标签页"""
+        browser = self.tabs.currentWidget()
+        if browser:
+            current = browser.zoomFactor()
+            new_zoom = max(current - 0.1, 0.25)
+            browser.setZoomFactor(new_zoom)
+            self._tab_zoom_factors[id(browser)] = new_zoom
+            self._update_zoom_label(new_zoom)
+
+    def zoom_reset(self):
+        """重置当前标签页缩放为 100%"""
+        browser = self.tabs.currentWidget()
+        if browser:
+            browser.setZoomFactor(1.0)
+            self._tab_zoom_factors[id(browser)] = 1.0
+            self._update_zoom_label(1.0)
+
+    def _update_zoom_label(self, factor):
+        """更新状态栏中的缩放比例显示"""
+        self.zoom_label.setText(f"{int(factor * 100)}%")
 
     # ---- 下载管理功能 ----
 

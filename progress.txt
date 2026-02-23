@@ -67,3 +67,12 @@
   - 弹出保存文件对话框让用户选择保存位置
   - 菜单栏新增 "Downloads" 菜单（Show Downloads / Download History）
 - 测试方法：py_compile 编译通过，模块 import 正常，格式化函数输出正确
+
+## [2026-02-23 14:15:00] - 完成任务: 页面缩放功能
+- 在 MainWindow 中实现 zoom_in / zoom_out / zoom_reset 方法
+- 支持 Ctrl++ / Ctrl+= 放大、Ctrl+- 缩小、Ctrl+0 重置缩放
+- 使用 `_tab_zoom_factors` 字典为每个标签页独立保存缩放比例
+- 切换标签页时自动更新状态栏缩放比例显示
+- 关闭标签页时清理缩放数据
+- 状态栏右侧永久显示当前缩放比例（如 "100%"）
+- 测试方法：py_compile 编译通过
