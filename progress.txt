@@ -149,3 +149,20 @@
 - reopen_closed_tab(): 从 _closed_tabs 弹出最近关闭的标签页并恢复，Ctrl+Shift+T 快捷键
 - 导入 SessionManager 模块
 - 测试方法：py_compile 两个文件均编译通过
+
+## [2026-02-23] - 完成任务: 快捷键系统
+- 新增 ShortcutsHelpDialog 类，使用 QTableWidget 展示 18 个快捷键列表
+- 在 MainWindow.__init__ 中添加所有快捷键绑定:
+  - Ctrl+T: 新建标签页
+  - Ctrl+W: 关闭当前标签页
+  - Ctrl+Tab: 切换到下一个标签页
+  - Ctrl+Shift+Tab: 切换到上一个标签页
+  - Ctrl+L: 聚焦到地址栏并全选
+  - Ctrl+R: 刷新页面
+  - Esc: 停止页面加载 (browser.stop())
+  - Ctrl+D: 快捷收藏当前页面
+  - Ctrl+H: 打开历史记录
+  - F1: 显示快捷键帮助
+- 新增方法: switch_to_next_tab, switch_to_prev_tab, focus_url_bar, stop_page_loading, show_shortcuts_help
+- 保留已有快捷键: Ctrl+F, Ctrl+U, Ctrl+Shift+N, Ctrl+Shift+T, F11, Ctrl++/-/0
+- 测试方法：py_compile 编译通过

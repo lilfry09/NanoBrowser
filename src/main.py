@@ -909,6 +909,69 @@ class FindInPageBar(QDialog):
                 )
 
 
+class ShortcutsHelpDialog(QDialog):
+    """快捷键帮助对话框，显示所有可用的快捷键"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Keyboard Shortcuts")
+        self.resize(500, 450)
+
+        layout = QVBoxLayout(self)
+
+        header = QLabel("Keyboard Shortcuts")
+        header.setStyleSheet("font-size: 16px; font-weight: bold; margin-bottom: 8px;")
+        layout.addWidget(header)
+
+        # 快捷键表格
+        self.table = QTableWidget()
+        self.table.setColumnCount(2)
+        self.table.setHorizontalHeaderLabels(["Shortcut", "Action"])
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch
+        )
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.verticalHeader().setVisible(False)
+        layout.addWidget(self.table)
+
+        shortcuts = [
+            ("Ctrl+T", "New tab"),
+            ("Ctrl+W", "Close current tab"),
+            ("Ctrl+Shift+T", "Reopen closed tab"),
+            ("Ctrl+Tab", "Next tab"),
+            ("Ctrl+Shift+Tab", "Previous tab"),
+            ("Ctrl+L", "Focus address bar"),
+            ("Ctrl+R", "Refresh page"),
+            ("Esc", "Stop loading page"),
+            ("Ctrl+D", "Bookmark current page"),
+            ("Ctrl+H", "Open history"),
+            ("Ctrl+F", "Find in page"),
+            ("Ctrl+U", "View page source"),
+            ("Ctrl++  /  Ctrl+=", "Zoom in"),
+            ("Ctrl+-", "Zoom out"),
+            ("Ctrl+0", "Reset zoom"),
+            ("Ctrl+Shift+N", "New incognito window"),
+            ("F1", "Show this help"),
+            ("F11", "Toggle fullscreen"),
+        ]
+
+        self.table.setRowCount(len(shortcuts))
+        for row, (key, desc) in enumerate(shortcuts):
+            key_item = QTableWidgetItem(key)
+            key_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 0, key_item)
+            self.table.setItem(row, 1, QTableWidgetItem(desc))
+
+        # 关闭按钮
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.close)
+        btn_layout.addWidget(close_btn)
+        layout.addLayout(btn_layout)
+
+
 class BookmarkManagerDialog(QDialog):
     """
     完整的书签管理对话框 - 支持文件夹、添加/编辑/删除、拖拽排序、导入导出。
@@ -1519,6 +1582,41 @@ class MainWindow(QMainWindow):
             # 默认初始标签页
             self.add_new_tab(QUrl("https://www.bing.com"), "Homepage")
 
+        # 11. 快捷键系统
+        new_tab_shortcut = QShortcut(QKeySequence("Ctrl+T"), self)
+        new_tab_shortcut.activated.connect(
+            lambda: self.add_new_tab(QUrl("https://www.bing.com"), "New Tab")
+        )
+
+        close_tab_shortcut = QShortcut(QKeySequence("Ctrl+W"), self)
+        close_tab_shortcut.activated.connect(
+            lambda: self.close_tab(self.tabs.currentIndex())
+        )
+
+        next_tab_shortcut = QShortcut(QKeySequence("Ctrl+Tab"), self)
+        next_tab_shortcut.activated.connect(self.switch_to_next_tab)
+
+        prev_tab_shortcut = QShortcut(QKeySequence("Ctrl+Shift+Tab"), self)
+        prev_tab_shortcut.activated.connect(self.switch_to_prev_tab)
+
+        focus_url_shortcut = QShortcut(QKeySequence("Ctrl+L"), self)
+        focus_url_shortcut.activated.connect(self.focus_url_bar)
+
+        refresh_shortcut = QShortcut(QKeySequence("Ctrl+R"), self)
+        refresh_shortcut.activated.connect(self.navigate_reload)
+
+        stop_shortcut = QShortcut(QKeySequence("Esc"), self)
+        stop_shortcut.activated.connect(self.stop_page_loading)
+
+        bookmark_shortcut = QShortcut(QKeySequence("Ctrl+D"), self)
+        bookmark_shortcut.activated.connect(self.save_bookmark)
+
+        history_shortcut = QShortcut(QKeySequence("Ctrl+H"), self)
+        history_shortcut.activated.connect(self.show_history)
+
+        help_shortcut = QShortcut(QKeySequence("F1"), self)
+        help_shortcut.activated.connect(self.show_shortcuts_help)
+
     def change_search_engine(self, engine_name):
         self.settings["search_engine"] = engine_name
         SettingsManager.save_settings(self.settings)
@@ -1889,6 +1987,38 @@ class MainWindow(QMainWindow):
         window = IncognitoWindow(self)
         self._incognito_windows.append(window)
         window.show()
+
+    # ---- 快捷键功能 ----
+
+    def switch_to_next_tab(self):
+        """切换到下一个标签页 (Ctrl+Tab)"""
+        current = self.tabs.currentIndex()
+        count = self.tabs.count()
+        if count > 1:
+            self.tabs.setCurrentIndex((current + 1) % count)
+
+    def switch_to_prev_tab(self):
+        """切换到上一个标签页 (Ctrl+Shift+Tab)"""
+        current = self.tabs.currentIndex()
+        count = self.tabs.count()
+        if count > 1:
+            self.tabs.setCurrentIndex((current - 1) % count)
+
+    def focus_url_bar(self):
+        """聚焦到地址栏 (Ctrl+L)"""
+        self.url_bar.setFocus()
+        self.url_bar.selectAll()
+
+    def stop_page_loading(self):
+        """停止当前页面加载 (Esc)"""
+        browser = self.tabs.currentWidget()
+        if browser:
+            browser.stop()
+
+    def show_shortcuts_help(self):
+        """显示快捷键帮助对话框 (F1)"""
+        dlg = ShortcutsHelpDialog(self)
+        dlg.exec()
 
     # ---- 下载管理功能 ----
 
