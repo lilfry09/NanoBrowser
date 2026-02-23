@@ -1,11 +1,17 @@
 import sys
+import os
 import re
+
+# 修复在不同目录下执行导致找不到同级模块的问题
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QToolBar, QLineEdit, 
                              QTabWidget, QDialog, QVBoxLayout, QListWidget, QMessageBox, QMenu)
 from PyQt6.QtCore import QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile
 from PyQt6.QtGui import QAction
+
 from history_manager import HistoryManager
 from bookmark_manager import BookmarkManager
 
