@@ -37,3 +37,33 @@
 - (Task 7) 重写了地址栏的 `navigate_to_url`，实现了非标准网址字符串时，默认调用 Bing 搜索引擎查询。
 - (Task 8) 添加了异常捕获（如文件读写保护），清理了相关代码，编写了详尽的 `README.md`，指导用户如何运行此浏览器。
 - 所有任务执行完毕，AI 自动开发流程圆满结束！
+
+## [2026-02-23 10:47:37] - 完成任务: Bug 修复与全面 UI 优化
+- 修复了 bookmark_manager.py 和 history_manager.py 中的相对路径 Bug，现在使用绝对路径避免执行目录错误
+- 修复了 bare except 语句，提高了代码健壮性
+- 修复了关闭最后一个标签页时导致应用退出而非开启新页面的 Bug
+- 完全重构了主界面体验：
+  - 添加了现代化深色主题 (QSS)
+  - 为后退、前进、主页、刷新按钮换上了图标 (StandardPixmap)
+  - 增加标签页最大宽度限制以及网页 Favicon 支持
+  - 地址栏下方加入了加载进度条
+  - 在书签上加入了右键菜单支持：关闭、关闭其他、新建等
+  - 完善了搜索引擎设置，并保存到了 settings.json（支持 Google, Bing, Baidu）
+  - 历史记录对话框升级为 QTableWidget，并支持了双击跳转及一键清除历史
+- 测试方法与结果：执行 python test_run.py 无报错，通过 UI 验证
+- 注意事项：GUI 已接近生产环境体验
+
+## [2026-02-23 14:00:00] - 完成任务: 下载管理器
+- 创建了 `src/download_manager.py`，实现 DownloadManager 类，支持下载历史的持久化（downloads.json）
+- 提供文件大小、速度、剩余时间的格式化工具方法
+- 在 `main.py` 中实现了 DownloadProgressDialog（下载进度对话框）：
+  - 显示实时下载速度、进度条、已下载/总大小、预计剩余时间
+  - 支持取消下载、自动检测下载完成/失败/取消状态
+- 实现了 DownloadHistoryDialog（下载历史记录对话框）：
+  - 表格展示所有下载记录（时间、文件名、大小、状态）
+  - 支持双击打开文件所在目录、打开下载文件夹、清空历史
+- 在 MainWindow 集成：
+  - 监听 QWebEngineProfile.downloadRequested 信号
+  - 弹出保存文件对话框让用户选择保存位置
+  - 菜单栏新增 "Downloads" 菜单（Show Downloads / Download History）
+- 测试方法：py_compile 编译通过，模块 import 正常，格式化函数输出正确

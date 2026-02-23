@@ -104,6 +104,299 @@
         "编写一个 README.md 说明如何运行该浏览器"
       ],
       "passes": true
+    },
+    {
+      "id": 9,
+      "title": "下载管理器",
+      "description": "实现文件下载功能，支持下载进度显示和下载历史记录",
+      "steps": [
+        "在 src 下创建 download_manager.py 文件，实现 DownloadManager 类",
+        "使用 QWebEngineDownloadRequest 监听下载请求",
+        "实现下载进度对话框，显示下载速度、进度条和剩余时间",
+        "将下载历史保存到 downloads.json 文件",
+        "在菜单栏添加 '下载' 菜单，点击可查看下载历史和打开下载的文件"
+      ],
+      "passes": true
+    },
+    {
+      "id": 10,
+      "title": "页面缩放功能",
+      "description": "支持放大、缩小和重置页面缩放比例",
+      "steps": [
+        "在工具栏添加放大 (+)、缩小 (-) 和重置缩放按钮",
+        "使用 QWebEngineView.setZoomFactor() 方法实现缩放功能",
+        "支持 Ctrl + Plus、Ctrl + Minus、Ctrl + 0 快捷键",
+        "在状态栏显示当前缩放比例",
+        "将每个标签页的缩放比例独立保存"
+      ],
+      "passes": false
+    },
+    {
+      "id": 11,
+      "title": "全屏浏览模式",
+      "description": "支持 F11 全屏和退出全屏浏览",
+      "steps": [
+        "在 MainWindow 中实现全屏切换方法，使用 showFullScreen() 和 showNormal()",
+        "支持 F11 快捷键切换全屏模式",
+        "全屏时自动隐藏工具栏和标签栏，鼠标移动到顶部时显示",
+        "在全屏模式下显示半透明的退出提示"
+      ],
+      "passes": false
+    },
+    {
+      "id": 12,
+      "title": "查看页面源代码",
+      "description": "支持查看当前网页的 HTML 源代码",
+      "steps": [
+        "在菜单栏添加 '查看' 菜单，包含 '页面源代码' 选项",
+        "使用 QWebEngineView.page().toHtml() 获取页面 HTML",
+        "创建一个源代码查看对话框，使用 QTextEdit 显示 HTML 代码",
+        "支持语法高亮和简单的代码搜索功能",
+        "支持 Ctrl+U 快捷键"
+      ],
+      "passes": false
+    },
+    {
+      "id": 13,
+      "title": "页面内查找功能",
+      "description": "支持在当前页面内搜索文本内容",
+      "steps": [
+        "实现查找对话框 (QDialog)，包含搜索输入框和上下查找按钮",
+        "使用 QWebEngineView.page().findText() 方法实现页面内查找",
+        "支持 Ctrl+F 快捷键打开查找框",
+        "显示找到的结果数量，支持 Enter 和 Shift+Enter 切换上下查找",
+        "高亮显示所有匹配的文本"
+      ],
+      "passes": false
+    },
+    {
+      "id": 14,
+      "title": "无痕浏览模式",
+      "description": "实现隐私浏览模式，不保存历史记录和Cookies",
+      "steps": [
+        "创建独立的 QWebEngineProfile 用于无痕模式",
+        "在菜单栏添加 '打开新的无痕窗口' 选项",
+        "无痕模式下不调用 HistoryManager.add_history()",
+        "无痕窗口使用特殊标识（如标题前缀或图标）",
+        "关闭无痕窗口时自动清除所有临时数据和 cookies"
+      ],
+      "passes": false
+    },
+    {
+      "id": 15,
+      "title": "书签管理器增强",
+      "description": "完善书签管理功能，支持文件夹、导入导出和编辑",
+      "steps": [
+        "创建完整的书签管理对话框，支持添加、编辑、删除书签",
+        "实现书签文件夹功能，支持书签分类管理",
+        "支持书签的拖拽排序",
+        "实现书签导出为 HTML 格式（兼容主流浏览器）",
+        "支持从 HTML 文件导入书签",
+        "在书签菜单中显示书签文件夹结构"
+      ],
+      "passes": false
+    },
+    {
+      "id": 16,
+      "title": "会话恢复功能",
+      "description": "浏览器重启后自动恢复上次打开的标签页",
+      "steps": [
+        "创建 session_manager.py 文件，实现 SessionManager 类",
+        "程序退出时保存当前所有标签页的 URL 和标题到 session.json",
+        "程序启动时检查 session.json，如果存在则恢复所有标签页",
+        "在设置中添加 '启动时恢复上次浏览会话' 选项",
+        "实现 '重新打开已关闭的标签页' 功能 (Ctrl+Shift+T)"
+      ],
+      "passes": false
+    },
+    {
+      "id": 17,
+      "title": "快捷键系统",
+      "description": "完善常用浏览器快捷键支持",
+      "steps": [
+        "实现 Ctrl+T 新建标签页",
+        "实现 Ctrl+W 关闭当前标签页",
+        "实现 Ctrl+Tab / Ctrl+Shift+Tab 切换标签页",
+        "实现 Ctrl+L 聚焦到地址栏",
+        "实现 Ctrl+R 刷新页面",
+        "实现 Esc 停止加载页面",
+        "实现 Ctrl+D 快捷收藏当前页面",
+        "实现 Ctrl+H 打开历史记录",
+        "创建快捷键帮助对话框，显示所有可用快捷键"
+      ],
+      "passes": false
+    },
+    {
+      "id": 18,
+      "title": "打印与保存为PDF",
+      "description": "支持打印页面和保存为PDF文件",
+      "steps": [
+        "在菜单栏添加 '文件' 菜单，包含 '打印' 和 '保存为 PDF' 选项",
+        "使用 QWebEngineView.page().print() 实现打印功能",
+        "使用 QWebEngineView.page().printToPdf() 实现保存PDF功能",
+        "支持 Ctrl+P 快捷键打印",
+        "实现打印预览对话框"
+      ],
+      "passes": false
+    },
+    {
+      "id": 19,
+      "title": "用户代理切换",
+      "description": "支持切换不同的 User-Agent 模拟不同浏览器",
+      "steps": [
+        "在设置中添加 User-Agent 选择功能",
+        "预置常见的 User-Agent (Chrome, Firefox, Safari, Edge, 移动端等)",
+        "支持自定义 User-Agent 字符串",
+        "使用 QWebEngineProfile.setHttpUserAgent() 应用选择的 UA",
+        "在地址栏右键菜单中添加快速切换 UA 选项"
+      ],
+      "passes": false
+    },
+    {
+      "id": 20,
+      "title": "地址栏自动完成",
+      "description": "在地址栏输入时显示基于历史和书签的智能建议",
+      "steps": [
+        "创建 QCompleter 用于地址栏自动完成",
+        "基于历史记录和书签生成建议列表",
+        "输入时实时过滤并显示匹配的 URL 和标题",
+        "支持键盘上下键选择建议项",
+        "显示建议图标（历史/书签）区分来源"
+      ],
+      "passes": false
+    },
+    {
+      "id": 21,
+      "title": "标签页固定功能",
+      "description": "支持固定标签页，使其不能被关闭且始终显示在最左侧",
+      "steps": [
+        "在标签页右键菜单添加 '固定标签页' 选项",
+        "固定的标签页显示特殊图标（如 📌）",
+        "固定的标签页移到标签栏最左侧",
+        "固定的标签页不能通过常规方式关闭",
+        "固定标签页状态在会话恢复时保持"
+      ],
+      "passes": false
+    },
+    {
+      "id": 22,
+      "title": "浏览器设置中心",
+      "description": "创建统一的设置对话框，管理所有浏览器偏好设置",
+      "steps": [
+        "创建完整的设置对话框 (SettingsDialog)",
+        "分类设置项：通用、隐私、外观、高级",
+        "支持设置：主页、搜索引擎、启动行为、下载位置、主题等",
+        "设置实时预览功能",
+        "支持恢复默认设置按钮"
+      ],
+      "passes": false
+    },
+    {
+      "id": 23,
+      "title": "Cookie 和缓存管理",
+      "description": "支持查看和清除网站 Cookies 与缓存数据",
+      "steps": [
+        "在设置中添加 '隐私与安全' 分类",
+        "实现清除浏览数据功能：缓存、Cookies、历史记录、下载记录",
+        "支持时间范围选择：过去1小时、今天、今天和昨天、过去7天、全部",
+        "添加 Cookie 管理对话框，显示所有网站的 Cookies",
+        "支持按网站删除特定 Cookie"
+      ],
+      "passes": false
+    },
+    {
+      "id": 24,
+      "title": "开发者工具集成",
+      "description": "集成类似 Chrome DevTools 的开发者调试工具",
+      "steps": [
+        "在菜单栏添加 '开发者' 菜单",
+        "使用 QWebEngineView.page().setDevToolsPage() 打开开发者工具",
+        "支持 F12 快捷键打开开发者工具",
+        "实现在新标签页或独立窗口中打开 DevTools",
+        "添加 '检查元素' 右键菜单选项"
+      ],
+      "passes": false
+    },
+    {
+      "id": 25,
+      "title": "网页截图功能",
+      "description": "支持截取整个网页或可见区域的截图",
+      "steps": [
+        "在菜单栏添加 '截图' 功能",
+        "使用 QWebEngineView.grab() 截取可见区域",
+        "实现滚动截图功能，截取整个网页（包括需要滚动查看的部分）",
+        "支持保存为 PNG/JPG 格式",
+        "提供截图预览和保存位置选择"
+      ],
+      "passes": false
+    },
+    {
+      "id": 26,
+      "title": "网页翻译功能",
+      "description": "集成网页翻译功能，支持翻译当前页面",
+      "steps": [
+        "在工具栏或菜单添加翻译按钮",
+        "支持调用在线翻译 API（如 Google Translate、百度翻译）",
+        "实现自动检测页面语言功能",
+        "支持选择翻译目标语言",
+        "缓存翻译结果，避免重复请求"
+      ],
+      "passes": false
+    },
+    {
+      "id": 27,
+      "title": "RSS 订阅阅读器",
+      "description": "内置 RSS/Atom 订阅功能，关注网站更新",
+      "steps": [
+        "创建 feed_reader.py 模块",
+        "实现 RSS/Atom feed 解析功能",
+        "在菜单添加 'RSS 阅读器' 选项",
+        "支持添加、删除和管理订阅源",
+        "显示未读文章数量，支持标记已读",
+        "保存订阅数据到 feeds.json"
+      ],
+      "passes": false
+    },
+    {
+      "id": 28,
+      "title": "密码管理器基础",
+      "description": "实现简单的密码保存和自动填充功能",
+      "steps": [
+        "创建 password_manager.py 模块",
+        "监听表单提交，检测密码输入",
+        "保存密码到加密的 passwords.json 文件",
+        "再次访问时自动填充已保存的密码",
+        "实现密码管理对话框，支持查看和删除已保存的密码",
+        "添加主密码保护功能"
+      ],
+      "passes": false
+    },
+    {
+      "id": 29,
+      "title": "主题系统增强",
+      "description": "支持多套主题和自定义主题颜色",
+      "steps": [
+        "创建主题管理器，支持浅色、深色、高对比度主题",
+        "在设置中添加主题选择功能",
+        "支持自定义主题颜色（强调色、背景色等）",
+        "实现主题预览功能",
+        "支持导入导出自定义主题配置"
+      ],
+      "passes": false
+    },
+    {
+      "id": 30,
+      "title": "扩展系统基础",
+      "description": "实现简单的浏览器扩展/插件系统",
+      "steps": [
+        "设计扩展 API 和目录结构 (plugins/)",
+        "实现扩展加载器，支持动态加载 Python 扩展",
+        "定义扩展清单文件格式 (manifest.json)",
+        "实现基础扩展点：右键菜单、工具栏按钮、页面加载钩子",
+        "创建示例扩展示例（如 GitHub 快捷访问）",
+        "在设置中添加扩展管理界面"
+      ],
+      "passes": false
     }
   ]
 }
