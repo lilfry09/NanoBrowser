@@ -56,6 +56,7 @@ from bookmark_manager import BookmarkManager
 from download_manager import DownloadManager
 from session_manager import SessionManager
 from feed_reader import FeedManager, FeedParser
+from password_manager import PasswordManager, PasswordCrypto
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "settings.json")
@@ -2250,6 +2251,131 @@ class FeedReaderDialog(QDialog):
         )
 
 
+class PasswordManagerDialog(QDialog):
+    """密码管理器对话框：查看和删除已保存的密码"""
+
+    def __init__(self, master_password: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Password Manager")
+        self.setMinimumSize(600, 400)
+        self.resize(700, 450)
+        self._master_password = master_password
+        self._init_ui()
+        self._refresh_table()
+
+    def _init_ui(self):
+        layout = QVBoxLayout(self)
+
+        # 按钮栏
+        btn_layout = QHBoxLayout()
+        self.delete_btn = QPushButton("Delete Selected")
+        self.delete_btn.clicked.connect(self._delete_selected)
+        self.delete_all_btn = QPushButton("Delete All")
+        self.delete_all_btn.clicked.connect(self._delete_all)
+        self.toggle_pw_btn = QPushButton("Show Passwords")
+        self.toggle_pw_btn.setCheckable(True)
+        self.toggle_pw_btn.toggled.connect(self._toggle_password_visibility)
+        btn_layout.addWidget(self.delete_btn)
+        btn_layout.addWidget(self.delete_all_btn)
+        btn_layout.addWidget(self.toggle_pw_btn)
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+
+        # 密码表格
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(
+            ["Website", "Username", "Password", "Saved"]
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Stretch
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        layout.addWidget(self.table)
+
+        self._passwords_visible = False
+
+    def _refresh_table(self):
+        """刷新密码表格"""
+        entries = PasswordManager.get_all_entries()
+        self.table.setRowCount(len(entries))
+        # 同时解密密码以便展示/隐藏
+        self._decrypted_passwords = []
+        data = PasswordManager.load_data()
+        raw_entries = data.get("entries", [])
+
+        for i, entry in enumerate(entries):
+            self.table.setItem(i, 0, QTableWidgetItem(entry.get("url", "")))
+            self.table.setItem(i, 1, QTableWidgetItem(entry.get("username", "")))
+            # 解密密码
+            pw = ""
+            if i < len(raw_entries):
+                enc = raw_entries[i].get("password_encrypted", {})
+                decrypted = PasswordCrypto.decrypt(enc, self._master_password)
+                pw = decrypted if decrypted else "[decrypt error]"
+            self._decrypted_passwords.append(pw)
+
+            if self._passwords_visible:
+                self.table.setItem(i, 2, QTableWidgetItem(pw))
+            else:
+                self.table.setItem(i, 2, QTableWidgetItem("********"))
+
+            self.table.setItem(i, 3, QTableWidgetItem(entry.get("created_at", "")))
+
+    def _toggle_password_visibility(self, checked: bool):
+        """切换密码显示/隐藏"""
+        self._passwords_visible = checked
+        self.toggle_pw_btn.setText("Hide Passwords" if checked else "Show Passwords")
+        for i in range(self.table.rowCount()):
+            if checked and i < len(self._decrypted_passwords):
+                self.table.setItem(i, 2, QTableWidgetItem(self._decrypted_passwords[i]))
+            else:
+                self.table.setItem(i, 2, QTableWidgetItem("********"))
+
+    def _delete_selected(self):
+        """删除选中的密码"""
+        rows = set()
+        for item in self.table.selectedItems():
+            rows.add(item.row())
+        if not rows:
+            return
+        reply = QMessageBox.question(
+            self,
+            "Delete Password",
+            f"Delete {len(rows)} selected password(s)?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            entries = PasswordManager.get_all_entries()
+            for row in sorted(rows, reverse=True):
+                if row < len(entries):
+                    entry = entries[row]
+                    PasswordManager.delete_password(entry["url"], entry["username"])
+            self._refresh_table()
+
+    def _delete_all(self):
+        """删除所有密码"""
+        reply = QMessageBox.question(
+            self,
+            "Delete All Passwords",
+            "Are you sure you want to delete ALL saved passwords?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            PasswordManager.delete_all()
+            self._refresh_table()
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -2519,6 +2645,11 @@ class MainWindow(QMainWindow):
         rss_action.triggered.connect(self.show_rss_reader)
         tools_menu.addAction(rss_action)
 
+        # 6e. Password Manager 菜单项
+        password_manager_action = QAction("Password Manager...", self)
+        password_manager_action.triggered.connect(self.show_password_manager)
+        tools_menu.addAction(password_manager_action)
+
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
 
@@ -2575,6 +2706,7 @@ class MainWindow(QMainWindow):
         self._closed_tabs = []  # 最近关闭的标签页 [{"url": ..., "title": ...}, ...]
         self._pinned_tabs = set()  # 固定的标签页 widget id 集合
         self._original_url_before_translate = None  # 翻译前的原始 URL
+        self._master_password_cache = None  # 会话中缓存的主密码（内存中，不持久化）
         reopen_tab_shortcut = QShortcut(QKeySequence("Ctrl+Shift+T"), self)
         reopen_tab_shortcut.activated.connect(self.reopen_closed_tab)
 
@@ -2705,6 +2837,9 @@ class MainWindow(QMainWindow):
         browser.titleChanged.connect(
             lambda title: self.update_tab_title(title, browser)
         )
+        browser.titleChanged.connect(
+            lambda title: self._check_password_save_prompt(browser)
+        )
         browser.loadFinished.connect(lambda ok: self.on_load_finished(ok, browser))
         browser.iconChanged.connect(lambda icon: self.update_tab_icon(icon, browser))
 
@@ -2743,6 +2878,10 @@ class MainWindow(QMainWindow):
             url = browser.url().toString()
             title = browser.title()
             HistoryManager.add_history(url, title)
+            # 自动填充密码（如果有主密码且有保存的密码）
+            self._try_auto_fill(browser, url)
+            # 注入表单提交监听脚本
+            self._inject_form_listener(browser)
         else:
             self.update_tab_title("Load Error", browser)
 
@@ -3357,6 +3496,159 @@ class MainWindow(QMainWindow):
     def _on_rss_open_url(self, url: str):
         """从 RSS 阅读器打开文章链接"""
         self.add_new_tab(QUrl(url), "Loading...")
+
+    # ---- 密码管理器 ----
+
+    def _request_master_password(self, title: str = "Master Password") -> str | None:
+        """请求输入主密码。已缓存则直接返回，否则弹窗。返回 None 表示取消。"""
+        if self._master_password_cache:
+            return self._master_password_cache
+
+        if not PasswordManager.is_master_password_set():
+            # 首次使用，设置主密码
+            pw, ok = QInputDialog.getText(
+                self,
+                "Set Master Password",
+                "Create a master password to protect your saved passwords:",
+                QLineEdit.EchoMode.Password,
+            )
+            if not ok or not pw.strip():
+                return None
+            # 确认
+            pw2, ok2 = QInputDialog.getText(
+                self,
+                "Confirm Master Password",
+                "Confirm your master password:",
+                QLineEdit.EchoMode.Password,
+            )
+            if not ok2 or pw2 != pw:
+                QMessageBox.warning(self, "Error", "Passwords do not match.")
+                return None
+            PasswordManager.set_master_password(pw)
+            self._master_password_cache = pw
+            return pw
+        else:
+            # 验证主密码
+            pw, ok = QInputDialog.getText(
+                self,
+                title,
+                "Enter your master password:",
+                QLineEdit.EchoMode.Password,
+            )
+            if not ok or not pw.strip():
+                return None
+            if not PasswordManager.verify_master_password(pw):
+                QMessageBox.warning(self, "Error", "Incorrect master password.")
+                return None
+            self._master_password_cache = pw
+            return pw
+
+    def show_password_manager(self):
+        """显示密码管理器对话框"""
+        master_pw = self._request_master_password("Password Manager")
+        if master_pw is None:
+            return
+        dialog = PasswordManagerDialog(master_pw, self)
+        dialog.exec()
+
+    def _try_auto_fill(self, browser, url: str):
+        """尝试自动填充已保存的密码"""
+        if not self._master_password_cache:
+            return
+        if not url or url in ("about:blank", ""):
+            return
+        passwords = PasswordManager.get_passwords_for_url(
+            url, self._master_password_cache
+        )
+        if not passwords:
+            return
+        # 使用第一个匹配的密码进行自动填充
+        cred = passwords[0]
+        username = cred["username"].replace("\\", "\\\\").replace("'", "\\'")
+        password = cred["password"].replace("\\", "\\\\").replace("'", "\\'")
+        js = f"""
+        (function() {{
+            var forms = document.querySelectorAll('form');
+            for (var i = 0; i < forms.length; i++) {{
+                var pwFields = forms[i].querySelectorAll('input[type="password"]');
+                if (pwFields.length > 0) {{
+                    // 找用户名字段
+                    var inputs = forms[i].querySelectorAll(
+                        'input[type="text"], input[type="email"], input[name*="user"], '
+                        + 'input[name*="login"], input[name*="email"], input[autocomplete="username"]'
+                    );
+                    if (inputs.length > 0) {{
+                        inputs[0].value = '{username}';
+                        inputs[0].dispatchEvent(new Event('input', {{bubbles: true}}));
+                    }}
+                    pwFields[0].value = '{password}';
+                    pwFields[0].dispatchEvent(new Event('input', {{bubbles: true}}));
+                    break;
+                }}
+            }}
+        }})();
+        """
+        browser.page().runJavaScript(js)
+
+    def _inject_form_listener(self, browser):
+        """注入 JavaScript 监听表单提交，检测密码输入"""
+        js = """
+        (function() {
+            if (window._nanobrowser_pw_listener) return;
+            window._nanobrowser_pw_listener = true;
+            document.addEventListener('submit', function(e) {
+                var form = e.target;
+                if (!form || form.tagName !== 'FORM') return;
+                var pwFields = form.querySelectorAll('input[type="password"]');
+                if (pwFields.length === 0) return;
+                var password = pwFields[0].value;
+                if (!password) return;
+                // 找用户名字段
+                var username = '';
+                var inputs = form.querySelectorAll(
+                    'input[type="text"], input[type="email"], input[name*="user"], '
+                    + 'input[name*="login"], input[name*="email"], input[autocomplete="username"]'
+                );
+                if (inputs.length > 0) username = inputs[0].value;
+                // 通过标题通知（简单方式，无需 WebChannel）
+                document.title = 'NANOBROWSER_SAVE_PW:' + btoa(
+                    JSON.stringify({username: username, password: password})
+                );
+            }, true);
+        })();
+        """
+        browser.page().runJavaScript(js)
+
+    def _check_password_save_prompt(self, browser):
+        """检查页面标题中是否有密码保存请求（由注入的 JS 触发）"""
+        title = browser.title()
+        if not title or not title.startswith("NANOBROWSER_SAVE_PW:"):
+            return
+        import base64
+
+        try:
+            encoded = title[len("NANOBROWSER_SAVE_PW:") :]
+            decoded = base64.b64decode(encoded).decode("utf-8")
+            data = json.loads(decoded)
+            username = data.get("username", "")
+            password = data.get("password", "")
+        except Exception:
+            return
+        if not password:
+            return
+        url = browser.url().toString()
+        # 弹窗询问是否保存
+        reply = QMessageBox.question(
+            self,
+            "Save Password",
+            f"Save password for {url}?\nUsername: {username}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            master_pw = self._request_master_password("Save Password")
+            if master_pw:
+                PasswordManager.save_password(url, username, password, master_pw)
+                self.statusBar().showMessage("Password saved.", 3000)
 
     # ---- 无痕浏览模式 ----
 
