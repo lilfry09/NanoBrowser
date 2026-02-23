@@ -45,6 +45,8 @@ from PyQt6.QtWidgets import (
     QFrame,
     QWidget,
     QSplitter,
+    QColorDialog,
+    QScrollArea,
 )
 from PyQt6.QtCore import QUrl, Qt, QTimer, QStringListModel, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QFont
@@ -57,128 +59,13 @@ from download_manager import DownloadManager
 from session_manager import SessionManager
 from feed_reader import FeedManager, FeedParser
 from password_manager import PasswordManager, PasswordCrypto
+from theme_manager import ThemeManager, generate_stylesheet, DEFAULT_THEME_COLORS
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "settings.json")
 
-# 现代化深色主题风格
-STYLE_SHEET = """
-QMainWindow {
-    background-color: #2b2b2b;
-}
-QToolBar {
-    background: #3c3f41;
-    border-bottom: 1px solid #1e1e1e;
-    spacing: 5px;
-    padding: 3px;
-}
-QToolBar::separator {
-    background-color: #555555;
-    width: 1px;
-    margin: 4px 5px;
-}
-QLineEdit {
-    background-color: #2b2b2b;
-    border: 1px solid #555555;
-    border-radius: 12px;
-    padding: 3px 12px;
-    color: #a9b7c6;
-    font-size: 13px;
-    selection-background-color: #214283;
-}
-QLineEdit:focus {
-    border: 1px solid #3d6a99;
-    background-color: #1e1e1e;
-}
-QTabWidget::pane {
-    border: none;
-    background: #2b2b2b;
-}
-QTabBar::tab {
-    background: #3c3f41;
-    color: #a9b7c6;
-    border: 1px solid #1e1e1e;
-    border-bottom: none;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    padding: 6px 12px;
-    margin-right: -1px;
-    max-width: 220px;
-    min-width: 100px;
-}
-QTabBar::tab:selected {
-    background: #2b2b2b;
-    color: #ffffff;
-}
-QTabBar::tab:hover:!selected {
-    background: #4c5052;
-}
-QTabBar::close-button {
-    image: url(''); /* Optionally override close icon here */
-}
-QMenu {
-    background-color: #3c3f41;
-    color: #a9b7c6;
-    border: 1px solid #555555;
-}
-QMenu::item:selected {
-    background-color: #4b6eaf;
-    color: #ffffff;
-}
-QProgressBar {
-    max-height: 2px;
-    background: transparent;
-    border: none;
-}
-QProgressBar::chunk {
-    background-color: #3d6a99;
-}
-QDialog {
-    background-color: #2b2b2b;
-    color: #a9b7c6;
-}
-QTableWidget {
-    background-color: #2b2b2b;
-    color: #a9b7c6;
-    gridline-color: #3c3f41;
-    border: 1px solid #555555;
-}
-QHeaderView::section {
-    background-color: #3c3f41;
-    color: #a9b7c6;
-    padding: 4px;
-    border: 1px solid #1e1e1e;
-}
-QPushButton {
-    background-color: #4c5052;
-    color: #a9b7c6;
-    border: 1px solid #555555;
-    border-radius: 4px;
-    padding: 5px 15px;
-}
-QPushButton:hover {
-    background-color: #5c6062;
-}
-QPushButton:pressed {
-    background-color: #3d6a99;
-}
-QComboBox {
-    background-color: #2b2b2b;
-    color: #a9b7c6;
-    border: 1px solid #555555;
-    border-radius: 4px;
-    padding: 2px 8px;
-}
-QComboBox:hover {
-    border: 1px solid #3d6a99;
-}
-QComboBox::drop-down {
-    border: none;
-}
-QLabel {
-    color: #a9b7c6;
-}
-"""
+# 现代化深色主题风格 (默认主题，由 ThemeManager 生成)
+STYLE_SHEET = ThemeManager.get_stylesheet("Dark (Default)")
 
 SEARCH_ENGINES = {
     "Bing": "https://www.bing.com/search?q={}",
@@ -1661,18 +1548,52 @@ class SettingsDialog(QDialog):
     # ---- Appearance ----
     def _create_appearance_page(self):
         page = QWidget()
-        form = QFormLayout(page)
-        form.setSpacing(12)
+        layout = QVBoxLayout(page)
+        layout.setSpacing(12)
 
-        # 主题选择（为 Task 29 预留扩展点）
+        # 主题选择
+        theme_group = QGroupBox("Theme")
+        theme_layout = QFormLayout(theme_group)
+
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Dark (Default)", "Light"])
+        all_themes = ThemeManager.get_all_theme_names()
+        self.theme_combo.addItems(all_themes)
         current_theme = self.settings.get("theme", "Dark (Default)")
-        if current_theme in ["Dark (Default)", "Light"]:
+        if current_theme in all_themes:
             self.theme_combo.setCurrentText(current_theme)
-        form.addRow("Theme:", self.theme_combo)
+        self.theme_combo.currentTextChanged.connect(self._on_theme_preview)
+        theme_layout.addRow("Theme:", self.theme_combo)
+
+        # 主题按钮栏
+        theme_btn_layout = QHBoxLayout()
+        self.preview_btn = QPushButton("Preview")
+        self.preview_btn.clicked.connect(self._preview_theme)
+        self.customize_btn = QPushButton("Customize...")
+        self.customize_btn.clicked.connect(self._customize_theme)
+        self.delete_theme_btn = QPushButton("Delete Custom")
+        self.delete_theme_btn.clicked.connect(self._delete_custom_theme)
+        theme_btn_layout.addWidget(self.preview_btn)
+        theme_btn_layout.addWidget(self.customize_btn)
+        theme_btn_layout.addWidget(self.delete_theme_btn)
+        theme_btn_layout.addStretch()
+        theme_layout.addRow("", theme_btn_layout)
+
+        # 导入/导出按钮
+        io_btn_layout = QHBoxLayout()
+        self.export_theme_btn = QPushButton("Export Theme...")
+        self.export_theme_btn.clicked.connect(self._export_theme)
+        self.import_theme_btn = QPushButton("Import Theme...")
+        self.import_theme_btn.clicked.connect(self._import_theme)
+        io_btn_layout.addWidget(self.export_theme_btn)
+        io_btn_layout.addWidget(self.import_theme_btn)
+        io_btn_layout.addStretch()
+        theme_layout.addRow("", io_btn_layout)
+
+        layout.addWidget(theme_group)
 
         # 默认缩放
+        zoom_group = QGroupBox("Display")
+        zoom_layout = QFormLayout(zoom_group)
         self.default_zoom_combo = QComboBox()
         zoom_levels = [
             "50%",
@@ -1691,9 +1612,215 @@ class SettingsDialog(QDialog):
             self.default_zoom_combo.setCurrentText(current_zoom)
         else:
             self.default_zoom_combo.setCurrentText("100%")
-        form.addRow("Default page zoom:", self.default_zoom_combo)
+        zoom_layout.addRow("Default page zoom:", self.default_zoom_combo)
+        layout.addWidget(zoom_group)
 
+        layout.addStretch()
         return page
+
+    def _on_theme_preview(self, theme_name: str):
+        """主题下拉框变化时的预览（仅文字提示）"""
+        pass  # 预览在 Preview 按钮中实现
+
+    def _preview_theme(self):
+        """预览选中的主题（临时应用到主窗口）"""
+        theme_name = self.theme_combo.currentText()
+        main_win = self.parent()
+        if main_win and hasattr(main_win, "apply_theme"):
+            main_win.apply_theme(theme_name)
+            QMessageBox.information(
+                self,
+                "Theme Preview",
+                f"Theme '{theme_name}' is now previewed.\n"
+                "Click OK to keep. If you cancel the settings dialog, "
+                "the original theme will be restored.",
+            )
+
+    def _customize_theme(self):
+        """打开自定义主题颜色编辑器"""
+        # 基于当前选中主题的颜色创建自定义主题
+        base_theme = self.theme_combo.currentText()
+        colors = ThemeManager.get_theme_colors(base_theme)
+        if colors is None:
+            colors = DEFAULT_THEME_COLORS.copy()
+
+        name, ok = QInputDialog.getText(
+            self,
+            "Custom Theme Name",
+            "Enter a name for your custom theme:",
+            text=f"My {base_theme}",
+        )
+        if not ok or not name.strip():
+            return
+        name = name.strip()
+
+        # 打开颜色编辑对话框
+        color_labels = ThemeManager.get_color_labels()
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Customize: {name}")
+        dialog.setMinimumSize(400, 500)
+        dlg_layout = QVBoxLayout(dialog)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        form = QFormLayout(scroll_widget)
+        form.setSpacing(8)
+
+        color_buttons = {}
+        for key, label in color_labels.items():
+            btn = QPushButton(colors.get(key, "#000000"))
+            btn.setFixedWidth(120)
+            btn.setStyleSheet(
+                f"background-color: {colors.get(key, '#000000')}; "
+                f"color: {'#fff' if self._is_dark_color(colors.get(key, '#000000')) else '#000'}; "
+                "border: 1px solid #888; border-radius: 4px; padding: 4px;"
+            )
+            btn.clicked.connect(
+                lambda checked, k=key, b=btn: self._pick_color(k, b, colors)
+            )
+            color_buttons[key] = btn
+            form.addRow(f"{label}:", btn)
+
+        scroll.setWidget(scroll_widget)
+        dlg_layout.addWidget(scroll)
+
+        # 预览 + 确认按钮
+        btn_layout = QHBoxLayout()
+        preview_btn = QPushButton("Preview")
+        preview_btn.clicked.connect(lambda: self._preview_custom_colors(colors))
+        save_btn = QPushButton("Save Theme")
+        cancel_btn = QPushButton("Cancel")
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(preview_btn)
+        btn_layout.addStretch()
+        btn_layout.addWidget(save_btn)
+        btn_layout.addWidget(cancel_btn)
+        dlg_layout.addLayout(btn_layout)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            ThemeManager.save_custom_theme(name, colors)
+            # 刷新主题列表
+            self.theme_combo.clear()
+            self.theme_combo.addItems(ThemeManager.get_all_theme_names())
+            self.theme_combo.setCurrentText(name)
+
+    def _pick_color(self, key: str, btn, colors: dict):
+        """打开颜色选择器"""
+        from PyQt6.QtGui import QColor
+
+        initial = QColor(colors.get(key, "#000000"))
+        color = QColorDialog.getColor(initial, self, f"Choose color for {key}")
+        if color.isValid():
+            hex_color = color.name()
+            colors[key] = hex_color
+            btn.setText(hex_color)
+            btn.setStyleSheet(
+                f"background-color: {hex_color}; "
+                f"color: {'#fff' if self._is_dark_color(hex_color) else '#000'}; "
+                "border: 1px solid #888; border-radius: 4px; padding: 4px;"
+            )
+
+    def _is_dark_color(self, hex_color: str) -> bool:
+        """判断颜色是否为深色"""
+        try:
+            hex_color = hex_color.lstrip("#")
+            r, g, b = (
+                int(hex_color[0:2], 16),
+                int(hex_color[2:4], 16),
+                int(hex_color[4:6], 16),
+            )
+            luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+            return luminance < 0.5
+        except (ValueError, IndexError):
+            return True
+
+    def _preview_custom_colors(self, colors: dict):
+        """预览自定义颜色（临时应用）"""
+        main_win = self.parent()
+        if main_win:
+            css = generate_stylesheet(colors)
+            main_win.setStyleSheet(css)
+
+    def _delete_custom_theme(self):
+        """删除选中的自定义主题"""
+        theme_name = self.theme_combo.currentText()
+        builtin = ThemeManager.get_builtin_theme_names()
+        if theme_name in builtin:
+            QMessageBox.information(self, "Info", "Cannot delete built-in themes.")
+            return
+        reply = QMessageBox.question(
+            self,
+            "Delete Theme",
+            f"Delete custom theme '{theme_name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            ThemeManager.delete_custom_theme(theme_name)
+            self.theme_combo.clear()
+            self.theme_combo.addItems(ThemeManager.get_all_theme_names())
+            self.theme_combo.setCurrentText("Dark (Default)")
+
+    def _export_theme(self):
+        """导出当前选中的主题为 JSON 文件"""
+        theme_name = self.theme_combo.currentText()
+        json_str = ThemeManager.export_theme(theme_name)
+        if not json_str:
+            QMessageBox.warning(self, "Error", "Failed to export theme.")
+            return
+        safe_name = re.sub(r"[^\w\-]", "_", theme_name)
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Theme",
+            f"{safe_name}.json",
+            "JSON Files (*.json)",
+        )
+        if path:
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(json_str)
+                QMessageBox.information(
+                    self,
+                    "Exported",
+                    f"Theme '{theme_name}' exported to:\n{path}",
+                )
+            except IOError as e:
+                QMessageBox.warning(self, "Error", f"Export failed: {e}")
+
+    def _import_theme(self):
+        """从 JSON 文件导入主题"""
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Theme",
+            "",
+            "JSON Files (*.json)",
+        )
+        if not path:
+            return
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                json_str = f.read()
+        except IOError as e:
+            QMessageBox.warning(self, "Error", f"Import failed: {e}")
+            return
+        name, colors = ThemeManager.import_theme(json_str)
+        if name is None:
+            QMessageBox.warning(
+                self,
+                "Error",
+                "Invalid theme file. Ensure it contains 'name' and all required color keys.",
+            )
+            return
+        ThemeManager.save_custom_theme(name, colors)
+        self.theme_combo.clear()
+        self.theme_combo.addItems(ThemeManager.get_all_theme_names())
+        self.theme_combo.setCurrentText(name)
+        QMessageBox.information(
+            self,
+            "Imported",
+            f"Theme '{name}' imported successfully.",
+        )
 
     # ---- Advanced ----
     def _create_advanced_page(self):
@@ -2385,6 +2512,12 @@ class MainWindow(QMainWindow):
 
         # 加载设置
         self.settings = SettingsManager.load_settings()
+
+        # 应用保存的主题
+        saved_theme = self.settings.get("theme", "Dark (Default)")
+        theme_css = ThemeManager.get_stylesheet(saved_theme)
+        if theme_css:
+            self.setStyleSheet(theme_css)
 
         # 1. 进度条 (统一显示在上方)
         self.progress_bar = QProgressBar()
@@ -3269,6 +3402,10 @@ class MainWindow(QMainWindow):
 
     def _apply_settings_changes(self, new_settings):
         """将修改后的设置应用到运行中的浏览器"""
+        # 主题
+        theme_name = new_settings.get("theme", "Dark (Default)")
+        self.apply_theme(theme_name)
+
         # 搜索引擎
         engine = new_settings.get("search_engine", "Bing")
         if engine in ["Bing", "Google", "Baidu"]:
@@ -3288,6 +3425,12 @@ class MainWindow(QMainWindow):
         )
 
         self.statusBar().showMessage("Settings saved.", 2000)
+
+    def apply_theme(self, theme_name: str):
+        """动态切换主题"""
+        css = ThemeManager.get_stylesheet(theme_name)
+        if css:
+            self.setStyleSheet(css)
 
     def open_cookie_manager(self):
         """打开 Cookie 管理对话框"""
@@ -3386,7 +3529,6 @@ class MainWindow(QMainWindow):
 
     def _show_screenshot_preview(self, pixmap):
         """显示截图预览对话框，支持保存"""
-        from PyQt6.QtWidgets import QScrollArea
         from PyQt6.QtGui import QPixmap
 
         dlg = QDialog(self)

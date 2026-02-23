@@ -318,3 +318,29 @@
 - 在 Tools 菜单添加 "Password Manager..." 选项
 - 新增导入: PasswordManager, PasswordCrypto
 - 测试方法：py_compile 编译通过（password_manager.py + main.py）
+
+## [2026-02-24] - 完成任务: 主题系统增强
+- 创建 src/theme_manager.py 模块：
+  - 3 套内置主题：Dark (Default), Light, High Contrast
+  - 每个主题由 13 个颜色键定义（bg_primary, bg_secondary, bg_tertiary, text_primary, text_secondary, border, accent 等）
+  - generate_stylesheet(colors) 函数：根据颜色配置动态生成完整 QSS 样式表
+  - ThemeManager 类：获取/保存/删除自定义主题，导入/导出 JSON
+  - 自定义主题持久化到 custom_themes.json
+- 重构 main.py 中的 STYLE_SHEET：
+  - 不再硬编码 CSS，改为 ThemeManager.get_stylesheet("Dark (Default)") 动态生成
+  - MainWindow.__init__ 中根据保存的设置加载主题
+  - 新增 apply_theme(theme_name) 方法用于动态切换
+  - _apply_settings_changes 中加入主题应用逻辑
+- 增强 SettingsDialog 的 Appearance 页面：
+  - 主题下拉框支持所有内置 + 自定义主题
+  - Preview 按钮：临时应用主题到主窗口查看效果
+  - Customize 按钮：打开颜色编辑器对话框
+    - 滚动区域内显示所有 13 个颜色键
+    - 每个颜色有彩色按钮，点击打开 QColorDialog 选择颜色
+    - Preview 按钮实时预览自定义颜色
+    - Save Theme 保存为自定义主题
+  - Delete Custom 按钮：删除自定义主题（内置主题不可删）
+  - Export Theme 按钮：导出为 JSON 文件
+  - Import Theme 按钮：从 JSON 文件导入
+- 新增导入: QColorDialog, QScrollArea (全局), ThemeManager, generate_stylesheet, DEFAULT_THEME_COLORS
+- 测试方法：py_compile 编译通过（theme_manager.py + main.py）
