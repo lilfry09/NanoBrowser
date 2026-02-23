@@ -178,3 +178,13 @@
   - 状态栏显示保存成功提示
 - 新增方法: print_page, _do_print, save_as_pdf
 - 测试方法：py_compile 编译通过
+
+## [2026-02-24] - 完成任务: 用户代理切换
+- 在 Tools 菜单下添加 User-Agent 子菜单，包含 7 种预设 UA（Default, Chrome/Firefox/Safari/Edge Windows, Chrome Android, Safari iPhone）
+- 预设 UA 使用单选 checkable actions，一次只能选中一个
+- 支持 "Custom User-Agent..." 弹出 QInputDialog 输入自定义 UA 字符串
+- 使用 QWebEngineProfile.defaultProfile().setHttpUserAgent() 应用 UA
+- UA 选择持久化到 settings.json（user_agent 字段），自定义 UA 字符串存储在 user_agent_custom_string 字段
+- 启动时自动恢复上次选择的 UA
+- 新增方法: set_user_agent, set_custom_user_agent, _apply_user_agent
+- 测试方法：py_compile 编译通过

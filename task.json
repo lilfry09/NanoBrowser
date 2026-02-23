@@ -250,7 +250,7 @@
         "使用 QWebEngineProfile.setHttpUserAgent() 应用选择的 UA",
         "在地址栏右键菜单中添加快速切换 UA 选项"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 20,

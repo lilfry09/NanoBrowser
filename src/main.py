@@ -1526,6 +1526,41 @@ class MainWindow(QMainWindow):
         view_menu.addSeparator()
         view_menu.addAction(incognito_action)
 
+        # 6c. Tools 菜单 - User-Agent 切换
+        tools_menu = self.menuBar().addMenu("Tools")
+        ua_menu = tools_menu.addMenu("User-Agent")
+
+        self._user_agents = {
+            "Default (NanoBrowser)": "",
+            "Chrome (Windows)": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Firefox (Windows)": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+            "Safari (macOS)": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+            "Edge (Windows)": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+            "Chrome (Android)": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.43 Mobile Safari/537.36",
+            "Safari (iPhone)": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
+        }
+        self._ua_action_group = []
+        current_ua = self.settings.get("user_agent", "Default (NanoBrowser)")
+
+        for name in self._user_agents:
+            action = QAction(name, self)
+            action.setCheckable(True)
+            if name == current_ua:
+                action.setChecked(True)
+            action.triggered.connect(
+                lambda checked, ua_name=name: self.set_user_agent(ua_name)
+            )
+            ua_menu.addAction(action)
+            self._ua_action_group.append(action)
+
+        ua_menu.addSeparator()
+        custom_ua_action = QAction("Custom User-Agent...", self)
+        custom_ua_action.triggered.connect(self.set_custom_user_agent)
+        ua_menu.addAction(custom_ua_action)
+
+        # 应用已保存的 UA
+        self._apply_user_agent(current_ua)
+
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
 
@@ -1991,6 +2026,47 @@ class MainWindow(QMainWindow):
     def show_find_bar(self):
         """显示页面内查找栏"""
         self._find_bar.show_bar()
+
+    # ---- User-Agent 切换 ----
+
+    def set_user_agent(self, ua_name):
+        """切换 User-Agent 并保存设置"""
+        # 更新 action group 的选中状态
+        for action in self._ua_action_group:
+            action.setChecked(action.text() == ua_name)
+        self._apply_user_agent(ua_name)
+        # 持久化
+        self.settings["user_agent"] = ua_name
+        SettingsManager.save_settings(self.settings)
+
+    def set_custom_user_agent(self):
+        """弹出对话框让用户输入自定义 User-Agent"""
+        current_profile_ua = QWebEngineProfile.defaultProfile().httpUserAgent()
+        text, ok = QInputDialog.getText(
+            self,
+            "Custom User-Agent",
+            "Enter User-Agent string:",
+            text=current_profile_ua,
+        )
+        if ok and text.strip():
+            custom_name = "Custom"
+            self._user_agents[custom_name] = text.strip()
+            # 取消所有预设的选中
+            for action in self._ua_action_group:
+                action.setChecked(False)
+            self._apply_user_agent(custom_name)
+            self.settings["user_agent"] = custom_name
+            self.settings["user_agent_custom_string"] = text.strip()
+            SettingsManager.save_settings(self.settings)
+
+    def _apply_user_agent(self, ua_name):
+        """将指定的 User-Agent 应用到默认 profile"""
+        ua_string = self._user_agents.get(ua_name, "")
+        if ua_name == "Custom":
+            ua_string = self.settings.get("user_agent_custom_string", "")
+        if ua_string:
+            QWebEngineProfile.defaultProfile().setHttpUserAgent(ua_string)
+        # 空字符串表示使用默认 UA（不做修改）
 
     # ---- 无痕浏览模式 ----
 
