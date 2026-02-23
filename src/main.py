@@ -2164,6 +2164,21 @@ class MainWindow(QMainWindow):
         cookie_manager_action.triggered.connect(self.open_cookie_manager)
         tools_menu.addAction(cookie_manager_action)
 
+        # Developer Tools
+        tools_menu.addSeparator()
+        devtools_action = QAction("Developer Tools", self)
+        devtools_action.setShortcut(QKeySequence("F12"))
+        devtools_action.triggered.connect(self.toggle_devtools)
+        tools_menu.addAction(devtools_action)
+
+        inspect_action = QAction("Inspect Element", self)
+        inspect_action.setShortcut(QKeySequence("Ctrl+Shift+I"))
+        inspect_action.triggered.connect(self.toggle_devtools)
+        tools_menu.addAction(inspect_action)
+
+        # DevTools 窗口引用
+        self._devtools_window = None
+
         # 7. 下载进度对话框 (单例)
         self.download_progress_dialog = None
 
@@ -2798,6 +2813,33 @@ class MainWindow(QMainWindow):
         """打开 Cookie 管理对话框"""
         dlg = CookieManagerDialog(self)
         dlg.exec()
+
+    # ---- 开发者工具 ----
+
+    def toggle_devtools(self):
+        """打开或关闭开发者工具窗口"""
+        browser = self.tabs.currentWidget()
+        if not browser:
+            return
+
+        # 如果 devtools 窗口已存在且未关闭，就关闭它
+        if self._devtools_window is not None and self._devtools_window.isVisible():
+            self._devtools_window.close()
+            self._devtools_window = None
+            return
+
+        # 创建新的 devtools 窗口
+        self._devtools_window = QMainWindow(self)
+        self._devtools_window.setWindowTitle("Developer Tools - NanoBrowser")
+        self._devtools_window.resize(900, 600)
+
+        devtools_view = QWebEngineView()
+        self._devtools_window.setCentralWidget(devtools_view)
+
+        # 将当前页面的 DevTools 绑定到新视图
+        browser.page().setDevToolsPage(devtools_view.page())
+
+        self._devtools_window.show()
 
     # ---- 无痕浏览模式 ----
 

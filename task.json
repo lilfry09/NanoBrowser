@@ -315,7 +315,7 @@
         "实现在新标签页或独立窗口中打开 DevTools",
         "添加 '检查元素' 右键菜单选项"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 25,
