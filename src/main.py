@@ -588,6 +588,148 @@ class SourceViewDialog(QDialog):
             self.text_edit.find(text, QTextDocument.FindFlag.FindBackward)
 
 
+class FindInPageBar(QDialog):
+    """页面内查找浮动条，类似 Chrome 的 Ctrl+F 查找栏"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.setStyleSheet(
+            "FindInPageBar { background-color: #3c3f41; border: 1px solid #555555; border-radius: 6px; }"
+        )
+        self.main_window = parent
+        self._last_search = ""
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 4, 8, 4)
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Find in page...")
+        self.search_input.setFixedWidth(250)
+        self.search_input.textChanged.connect(self._on_text_changed)
+        layout.addWidget(self.search_input)
+
+        self.result_label = QLabel("")
+        self.result_label.setStyleSheet(
+            "color: #a9b7c6; font-size: 11px; min-width: 60px;"
+        )
+        layout.addWidget(self.result_label)
+
+        prev_btn = QPushButton("^")
+        prev_btn.setToolTip("Previous (Shift+Enter)")
+        prev_btn.setFixedWidth(30)
+        prev_btn.clicked.connect(self.find_previous)
+        layout.addWidget(prev_btn)
+
+        next_btn = QPushButton("v")
+        next_btn.setToolTip("Next (Enter)")
+        next_btn.setFixedWidth(30)
+        next_btn.clicked.connect(self.find_next)
+        layout.addWidget(next_btn)
+
+        close_btn = QPushButton("X")
+        close_btn.setToolTip("Close (Esc)")
+        close_btn.setFixedWidth(30)
+        close_btn.clicked.connect(self.close_find)
+        layout.addWidget(close_btn)
+
+    def keyPressEvent(self, event):
+        """处理 Enter/Shift+Enter 和 Esc"""
+        if event.key() == Qt.Key.Key_Escape:
+            self.close_find()
+        elif event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                self.find_previous()
+            else:
+                self.find_next()
+        else:
+            super().keyPressEvent(event)
+
+    def show_bar(self):
+        """显示查找栏并聚焦到输入框"""
+        if self.main_window:
+            # 定位在窗口右上方
+            parent_rect = self.main_window.geometry()
+            x = parent_rect.x() + parent_rect.width() - self.width() - 20
+            y = parent_rect.y() + 80
+            self.move(x, y)
+        self.show()
+        self.raise_()
+        self.search_input.setFocus()
+        self.search_input.selectAll()
+
+    def close_find(self):
+        """关闭查找栏并清除高亮"""
+        self.hide()
+        # 清除页面中的查找高亮
+        if self.main_window:
+            browser = self.main_window.tabs.currentWidget()
+            if browser:
+                browser.page().findText("")
+
+    def _on_text_changed(self, text):
+        """输入文字时实时搜索"""
+        self._last_search = text
+        if not text:
+            self.result_label.setText("")
+            if self.main_window:
+                browser = self.main_window.tabs.currentWidget()
+                if browser:
+                    browser.page().findText("")
+            return
+        self.find_next()
+
+    def find_next(self):
+        """向下查找"""
+        text = self.search_input.text()
+        if not text or not self.main_window:
+            return
+        browser = self.main_window.tabs.currentWidget()
+        if browser:
+            browser.page().findText(text, callback=self._on_find_result)
+
+    def find_previous(self):
+        """向上查找"""
+        text = self.search_input.text()
+        if not text or not self.main_window:
+            return
+        browser = self.main_window.tabs.currentWidget()
+        if browser:
+            from PyQt6.QtWebEngineCore import QWebEnginePage
+
+            browser.page().findText(
+                text,
+                QWebEnginePage.FindFlag.FindBackward,
+                callback=self._on_find_result,
+            )
+
+    def _on_find_result(self, result):
+        """处理查找结果回调"""
+        if hasattr(result, "numberOfMatches"):
+            count = result.numberOfMatches()
+            active = result.activeMatch()
+            if count > 0:
+                self.result_label.setText(f"{active}/{count}")
+                self.result_label.setStyleSheet(
+                    "color: #a9b7c6; font-size: 11px; min-width: 60px;"
+                )
+            else:
+                self.result_label.setText("No results")
+                self.result_label.setStyleSheet(
+                    "color: #d9534f; font-size: 11px; min-width: 60px;"
+                )
+        else:
+            # PyQt6 旧版本可能不支持 FindTextResult
+            if result:
+                self.result_label.setText("Found")
+            else:
+                self.result_label.setText("No results")
+                self.result_label.setStyleSheet(
+                    "color: #d9534f; font-size: 11px; min-width: 60px;"
+                )
+
+
 class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -846,6 +988,12 @@ class MainWindow(QMainWindow):
         self._fullscreen_tip_timer = QTimer(self)
         self._fullscreen_tip_timer.setSingleShot(True)
         self._fullscreen_tip_timer.timeout.connect(self._fullscreen_tip.hide)
+
+        # 9. 页面内查找
+        self._find_bar = FindInPageBar(self)
+        self._find_bar.hide()
+        find_shortcut = QShortcut(QKeySequence("Ctrl+F"), self)
+        find_shortcut.activated.connect(self.show_find_bar)
 
         # 初始化时，先清空可能存在的缓存以解决某些情况下的网页打不开
         QWebEngineProfile.defaultProfile().clearHttpCache()
@@ -1184,6 +1332,12 @@ class MainWindow(QMainWindow):
         """在对话框中展示源代码"""
         dlg = SourceViewDialog(html, title, self)
         dlg.exec()
+
+    # ---- 页面内查找 ----
+
+    def show_find_bar(self):
+        """显示页面内查找栏"""
+        self._find_bar.show_bar()
 
     # ---- 下载管理功能 ----
 

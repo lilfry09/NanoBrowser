@@ -92,3 +92,14 @@
 - 支持 Ctrl+U 快捷键快速查看源代码
 - 使用 QWebEngineView.page().toHtml() 异步获取页面 HTML
 - 测试方法：py_compile 编译通过
+
+## [2026-02-23 14:45:00] - 完成任务: 页面内查找功能
+- 新增 FindInPageBar 类，无边框浮动查找栏（类似 Chrome 的 Ctrl+F）
+- 支持实时搜索：输入文字时即时查找并高亮匹配
+- 提供上一个(^) / 下一个(v) / 关闭(X) 按钮
+- 支持 Enter 查找下一个、Shift+Enter 查找上一个、Esc 关闭
+- 支持 Ctrl+F 快捷键打开查找栏
+- 显示匹配结果数量（如 "2/5"），无结果时显示红色 "No results"
+- 使用 QWebEnginePage.findText() 内置查找 + 高亮功能
+- 关闭时自动清除页面高亮
+- 测试方法：py_compile 编译通过

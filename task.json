@@ -167,7 +167,7 @@
         "显示找到的结果数量，支持 Enter 和 Shift+Enter 切换上下查找",
         "高亮显示所有匹配的文本"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 14,
