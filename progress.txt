@@ -116,3 +116,21 @@
 - 菜单 View > New Incognito Window，支持 Ctrl+Shift+N 快捷键
 - 更新 WebEngineView 支持自定义 profile 参数
 - 测试方法：py_compile 编译通过
+
+## [2026-02-23] - 完成任务: 书签管理器增强
+- 重写 src/bookmark_manager.py，新数据结构支持 type: "bookmark" / "folder"，文件夹可嵌套 children
+- 旧格式 [{"url":..., "title":...}] 自动迁移为新格式，向后兼容
+- 新增方法: add_folder, remove_folder, rename_folder, edit_bookmark, move_bookmark, get_folder_names, get_all_bookmarks_flat
+- 实现 export_to_html(): Netscape Bookmark File Format，兼容 Chrome/Firefox/Edge 导入
+- 实现 import_from_html(): 解析 Netscape 格式 HTML，递归处理文件夹层级，自动合并去重
+- 在 src/main.py 新增 BookmarkManagerDialog 类 (~250行):
+  - QTreeWidget 展示书签层级结构
+  - 启用 InternalMove 拖拽排序（书签可在文件夹间拖动）
+  - Add Bookmark / Add Folder / Edit / Delete 按钮
+  - Import HTML / Export HTML 按钮
+  - 双击书签在主窗口打开新标签页
+  - 关闭对话框时自动保存拖拽排序结果
+- 更新 update_bookmark_menu() 递归构建子菜单（文件夹 → QMenu 子菜单）
+- 替换原 show_bookmark_manager() 占位符为完整 BookmarkManagerDialog
+- 新增 PyQt6 导入: QTreeWidget, QTreeWidgetItem, QInputDialog, QAbstractItemView
+- 测试方法：py_compile 两个文件均编译通过

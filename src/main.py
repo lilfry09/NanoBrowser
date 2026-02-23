@@ -30,6 +30,10 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QStatusBar,
     QTextEdit,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QInputDialog,
+    QAbstractItemView,
 )
 from PyQt6.QtCore import QUrl, Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
@@ -904,6 +908,327 @@ class FindInPageBar(QDialog):
                 )
 
 
+class BookmarkManagerDialog(QDialog):
+    """
+    完整的书签管理对话框 - 支持文件夹、添加/编辑/删除、拖拽排序、导入导出。
+    使用 QTreeWidget 展示书签的层级结构。
+    """
+
+    # 自定义角色存储数据
+    ROLE_TYPE = Qt.ItemDataRole.UserRole
+    ROLE_URL = Qt.ItemDataRole.UserRole + 1
+    ROLE_FOLDER_NAME = Qt.ItemDataRole.UserRole + 2
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Bookmark Manager")
+        self.resize(700, 500)
+        self.main_window = parent
+        self._changed = False
+
+        layout = QVBoxLayout(self)
+
+        # 工具按钮行
+        toolbar_layout = QHBoxLayout()
+
+        add_bm_btn = QPushButton("Add Bookmark")
+        add_bm_btn.clicked.connect(self.add_bookmark)
+        toolbar_layout.addWidget(add_bm_btn)
+
+        add_folder_btn = QPushButton("Add Folder")
+        add_folder_btn.clicked.connect(self.add_folder)
+        toolbar_layout.addWidget(add_folder_btn)
+
+        edit_btn = QPushButton("Edit")
+        edit_btn.clicked.connect(self.edit_item)
+        toolbar_layout.addWidget(edit_btn)
+
+        delete_btn = QPushButton("Delete")
+        delete_btn.clicked.connect(self.delete_item)
+        toolbar_layout.addWidget(delete_btn)
+
+        toolbar_layout.addStretch()
+
+        import_btn = QPushButton("Import HTML")
+        import_btn.clicked.connect(self.import_bookmarks)
+        toolbar_layout.addWidget(import_btn)
+
+        export_btn = QPushButton("Export HTML")
+        export_btn.clicked.connect(self.export_bookmarks)
+        toolbar_layout.addWidget(export_btn)
+
+        layout.addLayout(toolbar_layout)
+
+        # 树形书签列表
+        self.tree = QTreeWidget()
+        self.tree.setHeaderLabels(["Title", "URL"])
+        self.tree.setColumnWidth(0, 300)
+        self.tree.setAlternatingRowColors(True)
+        self.tree.setStyleSheet(
+            "QTreeWidget { background-color: #2b2b2b; color: #a9b7c6; "
+            "alternate-background-color: #313335; border: 1px solid #555555; } "
+            "QTreeWidget::item:selected { background-color: #4b6eaf; color: #ffffff; }"
+        )
+
+        # 启用拖拽排序
+        self.tree.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.tree.setDragEnabled(True)
+        self.tree.setAcceptDrops(True)
+        self.tree.setDropIndicatorShown(True)
+        self.tree.setDefaultDropAction(Qt.DropAction.MoveAction)
+
+        self.tree.itemDoubleClicked.connect(self.on_double_click)
+        layout.addWidget(self.tree)
+
+        # 底部关闭按钮
+        bottom_layout = QHBoxLayout()
+        bottom_layout.addStretch()
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.close)
+        bottom_layout.addWidget(close_btn)
+        layout.addLayout(bottom_layout)
+
+        self.load_tree()
+
+    def load_tree(self):
+        """从 BookmarkManager 加载书签数据到树形控件"""
+        self.tree.clear()
+        bookmarks = BookmarkManager.load_bookmarks()
+        self._populate_tree(self.tree.invisibleRootItem(), bookmarks)
+        self.tree.expandAll()
+
+    def _populate_tree(self, parent_item, items):
+        """递归填充树形控件"""
+        for item in items:
+            if item.get("type") == "folder":
+                node = QTreeWidgetItem(parent_item)
+                node.setText(0, item["name"])
+                node.setText(1, "")
+                node.setData(0, self.ROLE_TYPE, "folder")
+                node.setData(0, self.ROLE_FOLDER_NAME, item["name"])
+                # 允许文件夹接收拖拽
+                node.setFlags(
+                    node.flags()
+                    | Qt.ItemFlag.ItemIsDropEnabled
+                    | Qt.ItemFlag.ItemIsDragEnabled
+                )
+                self._populate_tree(node, item.get("children", []))
+            elif item.get("type") == "bookmark":
+                node = QTreeWidgetItem(parent_item)
+                node.setText(0, item.get("title", ""))
+                node.setText(1, item.get("url", ""))
+                node.setData(0, self.ROLE_TYPE, "bookmark")
+                node.setData(0, self.ROLE_URL, item.get("url", ""))
+                node.setFlags(node.flags() | Qt.ItemFlag.ItemIsDragEnabled)
+
+    def _tree_to_bookmarks(self):
+        """将树形控件的当前状态转换回书签数据列表"""
+        root = self.tree.invisibleRootItem()
+        return self._node_children_to_list(root)
+
+    def _node_children_to_list(self, node):
+        """递归将树形节点转为书签列表"""
+        result = []
+        for i in range(node.childCount()):
+            child = node.child(i)
+            item_type = child.data(0, self.ROLE_TYPE)
+            if item_type == "folder":
+                result.append(
+                    {
+                        "type": "folder",
+                        "name": child.text(0),
+                        "children": self._node_children_to_list(child),
+                    }
+                )
+            elif item_type == "bookmark":
+                result.append(
+                    {
+                        "type": "bookmark",
+                        "url": child.text(1),
+                        "title": child.text(0),
+                        "added": "",
+                    }
+                )
+        return result
+
+    def add_bookmark(self):
+        """添加新书签"""
+        title, ok = QInputDialog.getText(self, "Add Bookmark", "Title:")
+        if not ok or not title:
+            return
+        url, ok = QInputDialog.getText(self, "Add Bookmark", "URL:", text="https://")
+        if not ok or not url:
+            return
+
+        # 添加到当前选中的文件夹节点或根节点
+        selected = self.tree.currentItem()
+        parent_node = self.tree.invisibleRootItem()
+        if selected:
+            if selected.data(0, self.ROLE_TYPE) == "folder":
+                parent_node = selected
+            elif selected.parent():
+                parent_node = selected.parent()
+
+        node = QTreeWidgetItem(parent_node)
+        node.setText(0, title)
+        node.setText(1, url)
+        node.setData(0, self.ROLE_TYPE, "bookmark")
+        node.setData(0, self.ROLE_URL, url)
+        node.setFlags(node.flags() | Qt.ItemFlag.ItemIsDragEnabled)
+
+        self._changed = True
+        self._save_from_tree()
+
+    def add_folder(self):
+        """添加新文件夹"""
+        name, ok = QInputDialog.getText(self, "Add Folder", "Folder name:")
+        if not ok or not name:
+            return
+
+        selected = self.tree.currentItem()
+        parent_node = self.tree.invisibleRootItem()
+        if selected and selected.data(0, self.ROLE_TYPE) == "folder":
+            parent_node = selected
+
+        node = QTreeWidgetItem(parent_node)
+        node.setText(0, name)
+        node.setText(1, "")
+        node.setData(0, self.ROLE_TYPE, "folder")
+        node.setData(0, self.ROLE_FOLDER_NAME, name)
+        node.setFlags(
+            node.flags() | Qt.ItemFlag.ItemIsDropEnabled | Qt.ItemFlag.ItemIsDragEnabled
+        )
+
+        self._changed = True
+        self._save_from_tree()
+
+    def edit_item(self):
+        """编辑选中的书签或文件夹"""
+        selected = self.tree.currentItem()
+        if not selected:
+            QMessageBox.information(self, "Edit", "Please select an item to edit.")
+            return
+
+        item_type = selected.data(0, self.ROLE_TYPE)
+        if item_type == "bookmark":
+            title, ok = QInputDialog.getText(
+                self, "Edit Bookmark", "Title:", text=selected.text(0)
+            )
+            if not ok:
+                return
+            url, ok = QInputDialog.getText(
+                self, "Edit Bookmark", "URL:", text=selected.text(1)
+            )
+            if not ok:
+                return
+            selected.setText(0, title)
+            selected.setText(1, url)
+            selected.setData(0, self.ROLE_URL, url)
+        elif item_type == "folder":
+            name, ok = QInputDialog.getText(
+                self, "Edit Folder", "Folder name:", text=selected.text(0)
+            )
+            if not ok:
+                return
+            selected.setText(0, name)
+            selected.setData(0, self.ROLE_FOLDER_NAME, name)
+
+        self._changed = True
+        self._save_from_tree()
+
+    def delete_item(self):
+        """删除选中的书签或文件夹"""
+        selected = self.tree.currentItem()
+        if not selected:
+            QMessageBox.information(self, "Delete", "Please select an item to delete.")
+            return
+
+        item_type = selected.data(0, self.ROLE_TYPE)
+        label = selected.text(0)
+
+        if item_type == "folder":
+            reply = QMessageBox.question(
+                self,
+                "Delete Folder",
+                f"Delete folder '{label}' and all its contents?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+        else:
+            reply = QMessageBox.question(
+                self,
+                "Delete Bookmark",
+                f"Delete bookmark '{label}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            parent = selected.parent()
+            if parent:
+                parent.removeChild(selected)
+            else:
+                index = self.tree.indexOfTopLevelItem(selected)
+                self.tree.takeTopLevelItem(index)
+
+            self._changed = True
+            self._save_from_tree()
+
+    def import_bookmarks(self):
+        """从 HTML 文件导入书签"""
+        filepath, _ = QFileDialog.getOpenFileName(
+            self, "Import Bookmarks", "", "HTML Files (*.html *.htm);;All Files (*)"
+        )
+        if not filepath:
+            return
+
+        count = BookmarkManager.import_from_html(filepath)
+        self.load_tree()
+        self._changed = True
+        QMessageBox.information(
+            self, "Import Complete", f"Successfully imported {count} bookmarks."
+        )
+
+    def export_bookmarks(self):
+        """导出书签为 HTML 文件"""
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export Bookmarks",
+            "bookmarks.html",
+            "HTML Files (*.html);;All Files (*)",
+        )
+        if not filepath:
+            return
+
+        # 先保存当前树的状态
+        self._save_from_tree()
+
+        if BookmarkManager.export_to_html(filepath):
+            QMessageBox.information(
+                self, "Export Complete", f"Bookmarks exported to:\n{filepath}"
+            )
+        else:
+            QMessageBox.warning(self, "Export Error", "Failed to export bookmarks.")
+
+    def on_double_click(self, item, column):
+        """双击书签在主窗口中打开"""
+        if item.data(0, self.ROLE_TYPE) == "bookmark":
+            url = item.text(1)
+            if url and self.main_window:
+                self.main_window.add_new_tab(QUrl(url), item.text(0))
+
+    def _save_from_tree(self):
+        """将树形控件的当前状态保存回 bookmarks.json"""
+        data = self._tree_to_bookmarks()
+        BookmarkManager.save_bookmarks(data)
+        # 通知主窗口更新书签菜单
+        if self.main_window and hasattr(self.main_window, "update_bookmark_menu"):
+            self.main_window.update_bookmark_menu()
+
+    def closeEvent(self, event):
+        """关闭时保存拖拽后的排序结果"""
+        self._save_from_tree()
+        event.accept()
+
+
 class HistoryDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1196,12 +1521,7 @@ class MainWindow(QMainWindow):
         self.bookmark_menu.clear()
         bookmarks = BookmarkManager.load_bookmarks()
 
-        for bm in bookmarks:
-            action = QAction(bm["title"], self)
-            action.triggered.connect(
-                lambda checked, url=bm["url"]: self.load_in_current_tab(url)
-            )
-            self.bookmark_menu.addAction(action)
+        self._build_bookmark_menu(self.bookmark_menu, bookmarks)
 
         if bookmarks:
             self.bookmark_menu.addSeparator()
@@ -1210,6 +1530,20 @@ class MainWindow(QMainWindow):
         manage_action.triggered.connect(self.show_bookmark_manager)
         self.bookmark_menu.addAction(manage_action)
 
+    def _build_bookmark_menu(self, menu, items):
+        """递归构建书签菜单，包含文件夹子菜单"""
+        for item in items:
+            if item.get("type") == "folder":
+                submenu = menu.addMenu(item["name"])
+                self._build_bookmark_menu(submenu, item.get("children", []))
+            elif item.get("type") == "bookmark":
+                action = QAction(item.get("title", item.get("url", "")), self)
+                url = item.get("url", "")
+                action.triggered.connect(
+                    lambda checked, u=url: self.load_in_current_tab(u)
+                )
+                menu.addAction(action)
+
     def load_in_current_tab(self, url):
         if self.tabs.currentWidget():
             self.tabs.currentWidget().setUrl(QUrl(url))
@@ -1217,12 +1551,10 @@ class MainWindow(QMainWindow):
             self.add_new_tab(QUrl(url), "Bookmark")
 
     def show_bookmark_manager(self):
-        # 简易的书签管理功能，供以后展
-        QMessageBox.information(
-            self,
-            "Bookmarks",
-            "Bookmark manager will be full-featured in a future update.\nCurrently managed via menus.",
-        )
+        dlg = BookmarkManagerDialog(self)
+        dlg.exec()
+        # 刷新菜单（对话框关闭后可能有变更）
+        self.update_bookmark_menu()
 
     def save_bookmark(self):
         if self.tabs.currentWidget():
