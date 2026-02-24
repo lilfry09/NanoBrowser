@@ -1,6 +1,8 @@
 [
   {
+    "type": "bookmark",
     "url": "https://www.bing.com",
-    "title": "Homepage"
+    "title": "Homepage",
+    "added": ""
   }
 ]
