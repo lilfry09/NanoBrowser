@@ -537,7 +537,7 @@
         "为复杂逻辑添加注释说明",
         "确保文档字符串包含 Args、Returns、Raises"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 41,
@@ -579,7 +579,7 @@
         "支持设置变更事件",
         "迁移现有设置代码"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 44,
@@ -593,7 +593,7 @@
         "使用缓存减少重复计算",
         "测试启动时间 < 3秒"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 45,
@@ -607,7 +607,7 @@
         "优化大数据结构",
         "添加内存监控功能"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 46,
@@ -621,7 +621,7 @@
         "支持切换不同的启动页布局",
         "支持更换背景图片"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 47,
@@ -635,7 +635,7 @@
         "在设置中添加手势配置",
         "测试各种手势操作"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 48,
@@ -649,7 +649,7 @@
         "显示拖拽预览",
         "在设置中添加拖拽配置"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 49,
@@ -663,7 +663,7 @@
         "可配置预览延迟",
         "可禁用预览功能"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 50,
@@ -677,7 +677,7 @@
         "支持播放/暂停控制",
         "支持切换视频"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 51,
@@ -691,7 +691,7 @@
         "支持打开/打开所在文件夹",
         "支持暂停/继续/取消下载"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 52,
@@ -705,7 +705,7 @@
         "支持拖拽添加书签",
         "侧边栏可折叠/展开"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 53,
@@ -719,7 +719,7 @@
         "支持搜索历史记录",
         "支持删除单条记录"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 54,
@@ -733,7 +733,7 @@
         "页面CSS也能响应主题变化",
         "在设置中添加选项"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 55,
@@ -747,7 +747,7 @@
         "支持自动隐藏滚动条",
         "与整体主题风格一致"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 56,
@@ -761,7 +761,7 @@
         "支持禁用加载动画",
         "动画流畅不卡顿"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 57,
@@ -775,7 +775,7 @@
         "支持跳过恢复",
         "保存恢复数据的时间限制"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 58,
@@ -789,7 +789,7 @@
         "支持清除统计数据",
         "保护用户隐私"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 59,
@@ -803,7 +803,7 @@
         "快捷键冲突检测",
         "恢复默认快捷键选项"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 60,
@@ -819,7 +819,7 @@
         "更新 README 文档",
         "提交代码并标记版本"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 } bookmark_manager.py 文件，用于读写 bookmarks.json 文件",
