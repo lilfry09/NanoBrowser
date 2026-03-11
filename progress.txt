@@ -33,6 +33,19 @@
 - 同步更新 IncognitoWindow 的新建标签页按钮样式
 - 测试方法：python -m py_compile 编译通过，ruff check 无新错误
 - UI 效果：标签栏更接近 Chrome 的现代化风格
+
+## [2026-03-11 12:00:00] - 完成任务: UI现代化 - 工具栏重构
+- 在地址栏左侧添加安全图标组件 (self.security_icon)
+- 实现 _update_security_icon() 方法，根据 URL 协议显示不同图标：
+  - HTTPS: 显示 🔒 锁图标，tooltip 提示 "Secure connection"
+  - HTTP: 显示 ⚠ 警告图标，tooltip 提示 "Not secure"
+  - 其他: 清空图标
+- 在 update_url_bar() 中调用 _update_security_icon() 实时更新
+- 导航按钮已有图标和 Tooltip（Back/Forward/Reload/Home）
+- 地址栏已有圆角矩形和聚焦边框效果（在 theme_manager 中）
+- 工具栏使用主题配色（通过 ThemeManager）
+- 整体布局参考 Chrome：导航按钮+地址栏(含安全图标)+功能区
+- 测试方法：python -m py_compile 编译通过
 - 自动开发守护进程 (Infinite Daemon) 已就绪。
 - Git 仓库已初始化。
 - `CLAUDE.md`, `task.json`, `run-infinite.sh` 配置文件已生成。

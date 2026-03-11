@@ -2732,11 +2732,26 @@ class MainWindow(QMainWindow):
 
         nav_bar.addSeparator()
 
+        # 地址栏容器（包含安全图标和输入框）
+        url_bar_container = QWidget()
+        url_bar_layout = QHBoxLayout(url_bar_container)
+        url_bar_layout.setContentsMargins(0, 0, 0, 0)
+        url_bar_layout.setSpacing(4)
+
+        # 地址栏安全图标
+        self.security_icon = QLabel()
+        self.security_icon.setFixedWidth(20)
+        self.security_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        url_bar_layout.addWidget(self.security_icon)
+
         # 地址栏
         self.url_bar = QLineEdit()
         self.url_bar.setPlaceholderText("Search or enter address")
         self.url_bar.returnPressed.connect(self.navigate_to_url)
-        nav_bar.addWidget(self.url_bar)
+        url_bar_layout.addWidget(self.url_bar)
+
+        # 将地址栏容器添加到工具栏
+        nav_bar.addWidget(url_bar_container)
 
         # 地址栏自动完成
         self._completer_model = QStringListModel()
@@ -3387,8 +3402,24 @@ class MainWindow(QMainWindow):
             if url_str != "about:blank":
                 self.url_bar.setText(url_str)
                 self.url_bar.setCursorPosition(0)
+                # 更新安全图标
+                self._update_security_icon(url_str)
             else:
                 self.url_bar.setText("")
+                self.security_icon.setText("")
+
+    def _update_security_icon(self, url_str):
+        """根据URL更新安全图标"""
+        if url_str.startswith("https://"):
+            # HTTPS - 显示锁图标
+            self.security_icon.setText("🔒")
+            self.security_icon.setToolTip("Secure connection")
+        elif url_str.startswith("http://"):
+            # HTTP - 显示警告图标
+            self.security_icon.setText("⚠")
+            self.security_icon.setToolTip("Not secure")
+        else:
+            self.security_icon.setText("")
 
     def navigate_back(self):
         if self.tabs.currentWidget():
