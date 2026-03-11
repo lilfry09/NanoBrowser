@@ -1,66 +1,71 @@
-import sys
+"""NanoBrowser - A lightweight cross-platform web browser."""
+
+import json
 import os
 import re
-import json
+import sys
+from typing import Any
 
 # 修复在不同目录下执行导致找不到同级模块的问题
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import time as _time
 
+from PyQt6.QtCore import QStringListModel, Qt, QThread, QTimer, QUrl, pyqtSignal
+from PyQt6.QtGui import QAction, QColor, QFont, QIcon, QKeySequence, QShortcut
+from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
-    QMainWindow,
-    QToolBar,
-    QLineEdit,
-    QTabWidget,
+    QCheckBox,
+    QColorDialog,
+    QComboBox,
+    QCompleter,
     QDialog,
-    QVBoxLayout,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
     QHBoxLayout,
+    QHeaderView,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QSplitter,
+    QStackedWidget,
+    QStyle,
     QTableWidget,
     QTableWidgetItem,
-    QMessageBox,
-    QMenu,
-    QProgressBar,
-    QStyle,
-    QComboBox,
-    QHeaderView,
-    QPushButton,
-    QLabel,
-    QFileDialog,
-    QStatusBar,
+    QTabWidget,
     QTextEdit,
+    QToolBar,
     QTreeWidget,
     QTreeWidgetItem,
-    QInputDialog,
-    QAbstractItemView,
-    QCompleter,
-    QStyledItemDelegate,
-    QCheckBox,
-    QGroupBox,
-    QFormLayout,
-    QListWidget,
-    QStackedWidget,
-    QListWidgetItem,
-    QFrame,
+    QVBoxLayout,
     QWidget,
-    QSplitter,
-    QColorDialog,
-    QScrollArea,
 )
-from PyQt6.QtCore import QUrl, Qt, QTimer, QStringListModel, QThread, pyqtSignal
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QFont, QColor
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 
-from history_manager import HistoryManager
 from bookmark_manager import BookmarkManager
 from download_manager import DownloadManager
-from session_manager import SessionManager
-from feed_reader import FeedManager, FeedParser
-from password_manager import PasswordManager, PasswordCrypto
-from theme_manager import ThemeManager, generate_stylesheet, DEFAULT_THEME_COLORS
 from extension_manager import ExtensionManager
+from feed_reader import FeedManager, FeedParser
+from history_manager import HistoryManager
+from password_manager import PasswordCrypto, PasswordManager
+from session_manager import SessionManager
+from theme_manager import DEFAULT_THEME_COLORS, ThemeManager, generate_stylesheet
+
+# Type aliases
+SettingsDict = dict[str, Any]
+TabData = dict[str, str]
+SearchEngines = dict[str, str]
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "settings.json")
@@ -75,13 +80,17 @@ SEARCH_ENGINES = {
 }
 
 
+# Type alias for module-level use
+MainWindowType = "MainWindow"
+
+
 class WebEngineView(QWebEngineView):
     """
-    自定义 WebEngineView，重写 createWindow 方法。
-    支持可选的 QWebEngineProfile (用于无痕模式)。
+    Custom WebEngineView that overrides createWindow method.
+    Supports optional QWebEngineProfile for incognito mode.
     """
 
-    def __init__(self, main_window, profile=None, parent=None):
+    def __init__(self, main_window: "MainWindowType", profile: QWebEngineProfile | None = None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._main_window = main_window
         self._custom_profile = profile
@@ -89,29 +98,34 @@ class WebEngineView(QWebEngineView):
             page = QWebEnginePage(profile, self)
             self.setPage(page)
 
-    def createWindow(self, window_type):
+    def createWindow(self, window_type: QWebEnginePage.WebWindowType) -> "WebEngineView":
+        """Handle new window requests by creating a new tab."""
         new_view = self._main_window.add_new_tab(QUrl("about:blank"), "Loading...")
         return new_view
 
 
 class SettingsManager:
+    """Manages browser settings persistence."""
+
     @staticmethod
-    def load_settings():
+    def load_settings() -> SettingsDict:
+        """Load settings from file."""
         if not os.path.exists(SETTINGS_FILE):
             return {"search_engine": "Bing"}
         try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+            with open(SETTINGS_FILE, encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return {"search_engine": "Bing"}
 
     @staticmethod
-    def save_settings(settings):
+    def save_settings(settings: SettingsDict) -> bool:
+        """Save settings to file."""
         try:
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
                 json.dump(settings, f, ensure_ascii=False, indent=2)
             return True
-        except IOError:
+        except OSError:
             return False
 
 
@@ -1521,7 +1535,7 @@ class SettingsDialog(QDialog):
                         encoding="utf-8",
                     ) as f:
                         _json.dump(filtered, f, ensure_ascii=False, indent=2)
-                except IOError:
+                except OSError:
                     pass
 
         if self.clear_downloads_cb.isChecked():
@@ -1794,7 +1808,7 @@ class SettingsDialog(QDialog):
                     "Exported",
                     f"Theme '{theme_name}' exported to:\n{path}",
                 )
-            except IOError as e:
+            except OSError as e:
                 QMessageBox.warning(self, "Error", f"Export failed: {e}")
 
     def _import_theme(self):
@@ -1808,9 +1822,9 @@ class SettingsDialog(QDialog):
         if not path:
             return
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 json_str = f.read()
-        except IOError as e:
+        except OSError as e:
             QMessageBox.warning(self, "Error", f"Import failed: {e}")
             return
         name, colors = ThemeManager.import_theme(json_str)
@@ -2063,7 +2077,7 @@ class CookieManagerDialog(QDialog):
         domain = domain.strip()
         cookie_store = QWebEngineProfile.defaultProfile().cookieStore()
         count = 0
-        for i, cookie in enumerate(self._cookie_list):
+        for _i, cookie in enumerate(self._cookie_list):
             if cookie.domain() == domain or cookie.domain().endswith("." + domain):
                 cookie_store.deleteCookie(cookie)
                 count += 1
@@ -3732,7 +3746,6 @@ class MainWindow(QMainWindow):
 
     def _show_screenshot_preview(self, pixmap):
         """显示截图预览对话框，支持保存"""
-        from PyQt6.QtGui import QPixmap
 
         dlg = QDialog(self)
         dlg.setWindowTitle("Screenshot Preview")
@@ -4141,7 +4154,7 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            from PyQt6.QtPrintSupport import QPrintPreviewDialog, QPrinter
+            from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
 
             printer = QPrinter(QPrinter.PrinterMode.HighResolution)
             preview = QPrintPreviewDialog(printer, self)

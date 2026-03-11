@@ -1,8 +1,8 @@
+import html as html_module
 import json
 import os
-import time
-import html as html_module
 import re
+import time
 
 # 使用项目根目录（src 的上级目录）作为数据文件存储路径
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -32,12 +32,12 @@ class BookmarkManager:
         if not os.path.exists(BOOKMARKS_FILE):
             return []
         try:
-            with open(BOOKMARKS_FILE, "r", encoding="utf-8") as f:
+            with open(BOOKMARKS_FILE, encoding="utf-8") as f:
                 data = json.load(f)
             # 自动迁移旧格式
             data = BookmarkManager._migrate(data)
             return data
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return []
 
     @staticmethod
@@ -47,7 +47,7 @@ class BookmarkManager:
             with open(BOOKMARKS_FILE, "w", encoding="utf-8") as f:
                 json.dump(bookmarks, f, ensure_ascii=False, indent=2)
             return True
-        except IOError as e:
+        except OSError as e:
             print("Bookmark save error:", e)
             return False
 
@@ -259,7 +259,7 @@ class BookmarkManager:
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write("\n".join(lines))
             return True
-        except IOError as e:
+        except OSError as e:
             print("Export error:", e)
             return False
 
@@ -290,9 +290,9 @@ class BookmarkManager:
         返回导入的书签数量。
         """
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 content = f.read()
-        except IOError as e:
+        except OSError as e:
             print("Import error:", e)
             return 0
 

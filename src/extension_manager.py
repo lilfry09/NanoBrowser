@@ -32,9 +32,9 @@ class MyExtension(BaseExtension):
         return [{"label": "...", "tooltip": "...", "callback": self.my_action}]
 """
 
+import importlib.util
 import json
 import os
-import importlib.util
 import traceback
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -155,12 +155,12 @@ class ExtensionManager:
             if not os.path.isfile(manifest_path):
                 continue
             try:
-                with open(manifest_path, "r", encoding="utf-8") as f:
+                with open(manifest_path, encoding="utf-8") as f:
                     manifest = json.load(f)
                 manifest["_dir"] = ext_dir
                 manifest["_dirname"] = entry
                 manifests.append(manifest)
-            except (json.JSONDecodeError, IOError) as e:
+            except (OSError, json.JSONDecodeError) as e:
                 print(f"Error reading manifest for {entry}: {e}")
 
         return manifests
@@ -292,9 +292,9 @@ class ExtensionManager:
         if not os.path.exists(EXTENSIONS_STATE_FILE):
             return {}
         try:
-            with open(EXTENSIONS_STATE_FILE, "r", encoding="utf-8") as f:
+            with open(EXTENSIONS_STATE_FILE, encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return {}
 
     def _save_state(self, state: dict):
@@ -302,7 +302,7 @@ class ExtensionManager:
         try:
             with open(EXTENSIONS_STATE_FILE, "w", encoding="utf-8") as f:
                 json.dump(state, f, ensure_ascii=False, indent=2)
-        except IOError as e:
+        except OSError as e:
             print(f"Extension state save error: {e}")
 
     def set_extension_enabled(self, name: str, enabled: bool):

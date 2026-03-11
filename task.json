@@ -510,7 +510,7 @@
         "为 theme_manager.py 添加类型提示",
         "为 extension_manager.py 添加类型提示"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 39,

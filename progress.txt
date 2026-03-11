@@ -463,3 +463,19 @@
   - 扩展 Python 文件通过 importlib.util.spec_from_file_location 动态加载
   - 扩展需继承 BaseExtension 并放在 plugins/<name>/main.py
   - 工具栏按钮在启动时加载，运行中启用/禁用扩展后需重启浏览器才能更新工具栏
+
+## [2026-03-11 11:50:00] - 完成任务: 代码规范 - Type Hints (Task 38)
+- 为所有模块添加了完整的类型提示：
+  - main.py: 添加了类型别名 (SettingsDict, TabData, SearchEngines) 和函数签名类型提示
+  - history_manager.py: 添加了 HistoryRecord 类型别名和所有函数的返回类型
+  - download_manager.py: 添加了 DownloadRecord, FileSize, Speed 类型别名
+  - session_manager.py: 添加了 TabData, SessionData 类型别名
+  - feed_reader.py: 添加了 FeedArticle, FeedData, FeedList 类型别名
+  - password_manager.py: 添加了 PasswordRecord, EncryptedData, PasswordData, PasswordEntry 类型别名
+- 运行 ruff check 发现 118 个错误（主要是 IOError, mode="r", typing.List/Dict 等）
+- 使用 `ruff check src/ --fix` 自动修复了 114 个问题
+- 手动修复了剩余 5 个问题：
+  - 修复了 W293 空白字符问题
+  - 修复了 B007 未使用循环变量 (i -> _i)
+- 最终 ruff check 通过，无错误
+- 注意：使用 Python 3.10+ 的内置类型注解 (list, dict) 而非 typing 模块的别名

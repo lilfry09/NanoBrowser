@@ -355,9 +355,9 @@ class ThemeManager:
         if not os.path.exists(THEMES_FILE):
             return {}
         try:
-            with open(THEMES_FILE, "r", encoding="utf-8") as f:
+            with open(THEMES_FILE, encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return {}
 
     @staticmethod
@@ -366,7 +366,7 @@ class ThemeManager:
         try:
             with open(THEMES_FILE, "w", encoding="utf-8") as f:
                 json.dump(themes, f, ensure_ascii=False, indent=2)
-        except IOError as e:
+        except OSError as e:
             print("Theme save error:", e)
 
     @staticmethod

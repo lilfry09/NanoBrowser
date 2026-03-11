@@ -4,7 +4,7 @@ import json
 import os
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 
 def load_json_file(file_path: str, default: Any = None) -> Any:
@@ -21,9 +21,9 @@ def load_json_file(file_path: str, default: Any = None) -> Any:
     if not os.path.exists(file_path):
         return default
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return json.load(f)
-    except (json.JSONDecodeError, IOError):
+    except (OSError, json.JSONDecodeError):
         return default
 
 
@@ -43,7 +43,7 @@ def save_json_file(file_path: str, data: Any) -> bool:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return True
-    except IOError:
+    except OSError:
         return False
 
 
@@ -82,7 +82,7 @@ def add_url_scheme(url: str, default_scheme: str = "https://") -> str:
     return default_scheme + url
 
 
-def format_timestamp(timestamp: Optional[float] = None, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+def format_timestamp(timestamp: float | None = None, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
     """
     格式化时间戳。
 

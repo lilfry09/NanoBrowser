@@ -1,36 +1,43 @@
+"""Password Manager Module - Secure password storage and auto-fill."""
+
+import base64
+import hashlib
+import hmac
 import json
 import os
-import hashlib
-import base64
-import hmac
 import secrets
+from typing import Any
 
 # 使用项目根目录（src 的上级目录）作为数据文件存储路径
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASSWORDS_FILE = os.path.join(_PROJECT_ROOT, "passwords.json")
 
+# Type aliases
+PasswordRecord = dict[str, Any]
+EncryptedData = dict[str, str]
+
 
 class PasswordCrypto:
-    """简单的密码加密/解密工具（基于主密码派生密钥 + XOR）"""
+    """Simple password encryption/decryption using master password derived key + XOR."""
 
     @staticmethod
     def derive_key(master_password: str, salt: bytes) -> bytes:
-        """从主密码派生加密密钥"""
+        """Derive encryption key from master password."""
         return hashlib.pbkdf2_hmac(
             "sha256", master_password.encode("utf-8"), salt, 100000
         )
 
     @staticmethod
-    def encrypt(plaintext: str, master_password: str) -> dict:
-        """加密明文密码，返回 {"salt": ..., "data": ..., "tag": ...}"""
+    def encrypt(plaintext: str, master_password: str) -> EncryptedData:
+        """Encrypt plaintext password, return {"salt": ..., "data": ..., "tag": ...}."""
         salt = secrets.token_bytes(16)
         key = PasswordCrypto.derive_key(master_password, salt)
-        # XOR 加密
+        # XOR encryption
         data_bytes = plaintext.encode("utf-8")
-        # 扩展 key 到匹配长度
+        # Extend key to match length
         extended_key = (key * ((len(data_bytes) // len(key)) + 1))[: len(data_bytes)]
-        encrypted = bytes(a ^ b for a, b in zip(data_bytes, extended_key))
-        # HMAC 完整性标签
+        encrypted = bytes(a ^ b for a, b in zip(data_bytes, extended_key, strict=False))
+        # HMAC integrity tag
         tag = hmac.new(key, encrypted, hashlib.sha256).hexdigest()
         return {
             "salt": base64.b64encode(salt).decode("ascii"),
@@ -39,27 +46,27 @@ class PasswordCrypto:
         }
 
     @staticmethod
-    def decrypt(encrypted_obj: dict, master_password: str) -> str | None:
-        """解密密码，失败返回 None（主密码错误或数据损坏）"""
+    def decrypt(encrypted_obj: EncryptedData, master_password: str) -> str | None:
+        """Decrypt password, return None on failure (wrong master password or corrupted data)."""
         try:
             salt = base64.b64decode(encrypted_obj["salt"])
             data = base64.b64decode(encrypted_obj["data"])
             tag = encrypted_obj["tag"]
             key = PasswordCrypto.derive_key(master_password, salt)
-            # 验证 HMAC
+            # Verify HMAC
             expected_tag = hmac.new(key, data, hashlib.sha256).hexdigest()
             if not hmac.compare_digest(tag, expected_tag):
-                return None  # 主密码错误或数据被篡改
-            # XOR 解密
+                return None  # Wrong master password or data tampered
+            # XOR decryption
             extended_key = (key * ((len(data) // len(key)) + 1))[: len(data)]
-            decrypted = bytes(a ^ b for a, b in zip(data, extended_key))
+            decrypted = bytes(a ^ b for a, b in zip(data, extended_key, strict=False))
             return decrypted.decode("utf-8")
         except (KeyError, ValueError, UnicodeDecodeError):
             return None
 
     @staticmethod
-    def hash_master_password(master_password: str, salt: bytes = None) -> dict:
-        """对主密码进行哈希，用于验证主密码是否正确"""
+    def hash_master_password(master_password: str, salt: bytes | None = None) -> EncryptedData:
+        """Hash master password for verifying if master password is correct."""
         if salt is None:
             salt = secrets.token_bytes(16)
         pw_hash = hashlib.pbkdf2_hmac(
@@ -71,8 +78,8 @@ class PasswordCrypto:
         }
 
     @staticmethod
-    def verify_master_password(master_password: str, stored: dict) -> bool:
-        """验证主密码是否与存储的哈希匹配"""
+    def verify_master_password(master_password: str, stored: EncryptedData) -> bool:
+        """Verify if master password matches stored hash."""
         try:
             salt = base64.b64decode(stored["salt"])
             expected_hash = base64.b64decode(stored["hash"])
@@ -85,13 +92,18 @@ class PasswordCrypto:
 
 
 class PasswordManager:
-    """密码管理器：保存、加载、删除网站密码，带主密码保护"""
+    """Password Manager: Save, load, delete website passwords with master password protection."""
+
+    # Type aliases
+    PasswordData = dict[str, Any]
+    PasswordEntry = dict[str, Any]
 
     @staticmethod
-    def load_data() -> dict:
+    def load_data() -> PasswordData:
         """
-        加载密码数据文件。
-        格式:
+        Load password data file.
+
+        Format:
         {
             "master_password_hash": {"salt": "...", "hash": "..."},
             "entries": [
@@ -107,29 +119,29 @@ class PasswordManager:
         if not os.path.exists(PASSWORDS_FILE):
             return {"master_password_hash": None, "entries": []}
         try:
-            with open(PASSWORDS_FILE, "r", encoding="utf-8") as f:
+            with open(PASSWORDS_FILE, encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return {"master_password_hash": None, "entries": []}
 
     @staticmethod
-    def save_data(data: dict):
-        """保存密码数据到文件"""
+    def save_data(data: PasswordData) -> None:
+        """Save password data to file."""
         try:
             with open(PASSWORDS_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-        except IOError as e:
+        except OSError as e:
             print("Password save error:", e)
 
     @staticmethod
     def is_master_password_set() -> bool:
-        """检查是否已设置主密码"""
+        """Check if master password has been set."""
         data = PasswordManager.load_data()
         return data.get("master_password_hash") is not None
 
     @staticmethod
-    def set_master_password(master_password: str):
-        """设置主密码（首次使用）"""
+    def set_master_password(master_password: str) -> None:
+        """Set master password (first time use)."""
         data = PasswordManager.load_data()
         data["master_password_hash"] = PasswordCrypto.hash_master_password(
             master_password
@@ -138,7 +150,7 @@ class PasswordManager:
 
     @staticmethod
     def verify_master_password(master_password: str) -> bool:
-        """验证主密码"""
+        """Verify master password."""
         data = PasswordManager.load_data()
         stored = data.get("master_password_hash")
         if stored is None:
@@ -146,8 +158,8 @@ class PasswordManager:
         return PasswordCrypto.verify_master_password(master_password, stored)
 
     @staticmethod
-    def save_password(url: str, username: str, password: str, master_password: str):
-        """保存一个网站的密码（使用主密码加密）"""
+    def save_password(url: str, username: str, password: str, master_password: str) -> None:
+        """Save a website password (encrypted with master password)."""
         import datetime
 
         data = PasswordManager.load_data()

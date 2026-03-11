@@ -1,33 +1,35 @@
+"""Feed Reader Module - RSS/Atom feed parsing and management."""
+
+import datetime
 import json
 import os
-import datetime
 import xml.etree.ElementTree as ET
-from urllib.request import urlopen, Request
+from typing import Any
 from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 # 使用项目根目录（src 的上级目录）作为数据文件存储路径
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FEEDS_FILE = os.path.join(_PROJECT_ROOT, "feeds.json")
 
+# Type aliases
+FeedArticle = dict[str, str]
+FeedData = dict[str, Any]
+FeedList = list[FeedData]
+
 
 class FeedParser:
-    """解析 RSS 2.0 和 Atom 1.0 格式的 Feed"""
+    """Parse RSS 2.0 and Atom 1.0 format Feeds."""
 
     ATOM_NS = "{http://www.w3.org/2005/Atom}"
 
     @staticmethod
-    def parse(xml_text: str) -> dict:
+    def parse(xml_text: str) -> FeedData:
         """
-        解析 XML 文本，返回 feed 信息和文章列表。
-        返回格式:
-        {
-            "title": "Feed Title",
-            "link": "https://...",
-            "articles": [
-                {"title": "...", "link": "...", "published": "...", "summary": "..."},
-                ...
-            ]
-        }
+        Parse XML text and return feed info and article list.
+
+        Returns:
+            Dict with keys: title, link, articles (list of dicts)
         """
         try:
             root = ET.fromstring(xml_text)
@@ -43,14 +45,15 @@ class FeedParser:
             return {"title": "", "link": "", "articles": []}
 
     @staticmethod
-    def _parse_rss(root) -> dict:
+    def _parse_rss(root: ET.Element) -> FeedData:
+        """Parse RSS format feed."""
         channel = root.find("channel")
         if channel is None:
             return {"title": "", "link": "", "articles": []}
 
         title = channel.findtext("title", "")
         link = channel.findtext("link", "")
-        articles = []
+        articles: list[FeedArticle] = []
 
         for item in channel.findall("item"):
             article = {
@@ -64,7 +67,8 @@ class FeedParser:
         return {"title": title, "link": link, "articles": articles}
 
     @staticmethod
-    def _parse_atom(root) -> dict:
+    def _parse_atom(root: ET.Element) -> FeedData:
+        """Parse Atom format feed."""
         ns = FeedParser.ATOM_NS
         # 也尝试无命名空间
         title = root.findtext(f"{ns}title", "") or root.findtext("title", "")
@@ -120,43 +124,31 @@ class FeedParser:
 
 
 class FeedManager:
-    """管理 RSS/Atom 订阅源和文章状态，数据持久化到 feeds.json"""
+    """Manages RSS/Atom feed subscriptions and article state."""
 
     @staticmethod
-    def load_feeds() -> list:
-        """
-        加载订阅源列表。
-        格式: [
-            {
-                "url": "https://...",
-                "title": "Feed Title",
-                "link": "https://...",
-                "articles": [...],
-                "read_links": ["https://..."],
-                "added_time": "2026-..."
-            }, ...
-        ]
-        """
+    def load_feeds() -> FeedList:
+        """Load feed subscription list."""
         if not os.path.exists(FEEDS_FILE):
             return []
         try:
-            with open(FEEDS_FILE, "r", encoding="utf-8") as f:
+            with open(FEEDS_FILE, encoding="utf-8") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return []
 
     @staticmethod
-    def save_feeds(feeds: list):
-        """保存订阅源列表到文件"""
+    def save_feeds(feeds: FeedList) -> None:
+        """Save feed list to file."""
         try:
             with open(FEEDS_FILE, "w", encoding="utf-8") as f:
                 json.dump(feeds, f, ensure_ascii=False, indent=2)
-        except IOError as e:
+        except OSError as e:
             print("Feeds save error:", e)
 
     @staticmethod
-    def add_feed(url: str, title: str = "", link: str = "") -> list:
-        """添加一个新的订阅源"""
+    def add_feed(url: str, title: str = "", link: str = "") -> FeedList:
+        """Add a new feed subscription."""
         feeds = FeedManager.load_feeds()
         # 检查是否已存在
         for f in feeds:
@@ -177,16 +169,16 @@ class FeedManager:
         return feeds
 
     @staticmethod
-    def remove_feed(url: str) -> list:
-        """删除一个订阅源"""
+    def remove_feed(url: str) -> FeedList:
+        """Remove a feed subscription."""
         feeds = FeedManager.load_feeds()
         feeds = [f for f in feeds if f["url"] != url]
         FeedManager.save_feeds(feeds)
         return feeds
 
     @staticmethod
-    def update_feed(url: str, parsed_data: dict) -> list:
-        """用解析后的数据更新某个 feed 的文章列表和标题"""
+    def update_feed(url: str, parsed_data: FeedData) -> FeedList:
+        """Update a feed's article list and title with parsed data."""
         feeds = FeedManager.load_feeds()
         for f in feeds:
             if f["url"] == url:
@@ -200,8 +192,8 @@ class FeedManager:
         return feeds
 
     @staticmethod
-    def mark_article_read(feed_url: str, article_link: str) -> list:
-        """标记某篇文章为已读"""
+    def mark_article_read(feed_url: str, article_link: str) -> FeedList:
+        """Mark an article as read."""
         feeds = FeedManager.load_feeds()
         for f in feeds:
             if f["url"] == feed_url:
@@ -212,8 +204,8 @@ class FeedManager:
         return feeds
 
     @staticmethod
-    def mark_all_read(feed_url: str) -> list:
-        """标记某个 feed 的所有文章为已读"""
+    def mark_all_read(feed_url: str) -> FeedList:
+        """Mark all articles in a feed as read."""
         feeds = FeedManager.load_feeds()
         for f in feeds:
             if f["url"] == feed_url:
@@ -225,15 +217,15 @@ class FeedManager:
         return feeds
 
     @staticmethod
-    def get_unread_count(feed: dict) -> int:
-        """获取某个 feed 的未读文章数量"""
+    def get_unread_count(feed: FeedData) -> int:
+        """Get the number of unread articles in a feed."""
         read_links = set(feed.get("read_links", []))
         articles = feed.get("articles", [])
         return sum(1 for a in articles if a.get("link") and a["link"] not in read_links)
 
     @staticmethod
     def fetch_feed(url: str, timeout: int = 10) -> str:
-        """从 URL 获取 feed XML 内容（同步方式，适合在线程中使用）"""
+        """Fetch feed XML content from URL (synchronous, suitable for threading)."""
         headers = {"User-Agent": "NanoBrowser RSS Reader/1.0"}
         req = Request(url, headers=headers)
         try:
