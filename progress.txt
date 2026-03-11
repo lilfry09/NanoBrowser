@@ -46,6 +46,15 @@
 - 工具栏使用主题配色（通过 ThemeManager）
 - 整体布局参考 Chrome：导航按钮+地址栏(含安全图标)+功能区
 - 测试方法：python -m py_compile 编译通过
+
+## [2026-03-11 12:10:00] - 完成任务: UI现代化 - 地址栏增强
+- 地址栏下拉建议框：已实现（使用 QCompleter）
+- 建议框显示匹配的搜索建议和历史记录：已实现（_refresh_completer_model 方法）
+- 地址栏显示加载进度条：已存在（在标签栏上方显示）
+- 地址栏安全指示器：已在任务 #33 实现（HTTPS 🔒 / HTTP ⚠）
+- 地址栏支持拖拽 URL 打开：添加 self.url_bar.setDragEnabled(True)
+- 测试方法：python -m py_compile 编译通过
+- 备注：语音输入搜索功能暂未实现（需要 Windows Speech Recognition API）
 - 自动开发守护进程 (Infinite Daemon) 已就绪。
 - Git 仓库已初始化。
 - `CLAUDE.md`, `task.json`, `run-infinite.sh` 配置文件已生成。

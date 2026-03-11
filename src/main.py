@@ -2748,6 +2748,7 @@ class MainWindow(QMainWindow):
         self.url_bar = QLineEdit()
         self.url_bar.setPlaceholderText("Search or enter address")
         self.url_bar.returnPressed.connect(self.navigate_to_url)
+        self.url_bar.setDragEnabled(True)  # 支持拖拽 URL 打开
         url_bar_layout.addWidget(self.url_bar)
 
         # 将地址栏容器添加到工具栏

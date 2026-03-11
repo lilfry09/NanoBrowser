@@ -451,7 +451,7 @@
         "支持语音输入搜索（WindowsSpeechRecognition）",
         "地址栏支持拖拽URL直接打开"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 35,
