@@ -2967,6 +2967,11 @@ class MainWindow(QMainWindow):
         # 7. 页面缩放 - 每个标签页独立缩放比例
         self._tab_zoom_factors = {}  # {tab_widget_id: zoom_factor}
 
+        # 状态栏：网络连接状态
+        self.network_label = QLabel("🟢 Online")
+        self.network_label.setStyleSheet("padding: 0 8px; font-size: 12px;")
+        self.statusBar().addPermanentWidget(self.network_label)
+
         # 状态栏缩放显示
         self.zoom_label = QLabel("100%")
         self.zoom_label.setStyleSheet("padding: 0 8px; font-size: 12px;")

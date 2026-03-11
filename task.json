@@ -465,7 +465,7 @@
         "支持快速调整缩放比例",
         "悬停时显示完整URL"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 36,

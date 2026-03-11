@@ -273,6 +273,11 @@ QScrollBar::handle:horizontal:hover {{
 QStatusBar {{
     background-color: {c["bg_secondary"]};
     color: {c["text_primary"]};
+    border-top: 1px solid {c["border"]};
+    opacity: 0.95;
+}}
+QStatusBar::item {{
+    border: none;
 }}
 """
 
