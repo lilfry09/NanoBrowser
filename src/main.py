@@ -2802,7 +2802,7 @@ class MainWindow(QMainWindow):
 
         # 添加新标签页按钮置于工具栏
         new_tab_btn = QAction(
-            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewPreview),
+            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder),
             "",
             self
         )
