@@ -108,27 +108,42 @@ QTabWidget::pane {{
     border: none;
     background: {c["bg_primary"]};
 }}
-QTabBar::tab {{
+QTabBar {{
     background: {c["bg_secondary"]};
+    border: none;
+    qproperty-drawBase: 0;
+}}
+QTabBar::tab {{
+    background: transparent;
     color: {c["text_primary"]};
-    border: 1px solid {c["bg_tertiary"]};
-    border-bottom: none;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    padding: 6px 12px;
-    margin-right: -1px;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    padding: 8px 16px;
+    margin: 2px 2px 0 2px;
     max-width: 220px;
     min-width: 100px;
+    font-size: 12px;
 }}
 QTabBar::tab:selected {{
-    background: {c["bg_primary"]};
+    background: {c["accent"]};
     color: {c["text_secondary"]};
 }}
 QTabBar::tab:hover:!selected {{
     background: {c["tab_hover"]};
+    border-radius: 8px 8px 0 0;
 }}
 QTabBar::close-button {{
-    image: url('');
+    image: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    padding: 4px;
+    margin-left: 4px;
+}}
+QTabBar::close-button:hover {{
+    background: #e81123;
+    border-radius: 50%;
 }}
 QMenu {{
     background-color: {c["bg_secondary"]};

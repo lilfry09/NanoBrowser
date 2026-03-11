@@ -519,6 +519,8 @@ class IncognitoWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
         self.tabs.setTabsClosable(True)
+        self.tabs.setMovable(True)  # 支持标签页拖拽排序
+        self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(self.close_tab)
         self.tabs.currentChanged.connect(self.current_tab_changed)
         self.setCentralWidget(self.tabs)
@@ -563,7 +565,11 @@ class IncognitoWindow(QMainWindow):
         self.url_bar.returnPressed.connect(self.navigate_to_url)
         nav_bar.addWidget(self.url_bar)
 
-        new_tab_btn = QAction("+", self)
+        new_tab_btn = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewPreview),
+            "",
+            self
+        )
         new_tab_btn.setToolTip("New Incognito Tab")
         new_tab_btn.triggered.connect(
             lambda: self.add_new_tab(QUrl("https://www.bing.com"), "New Tab")
@@ -2765,8 +2771,12 @@ class MainWindow(QMainWindow):
         nav_bar.addAction(history_btn)
 
         # 添加新标签页按钮置于工具栏
-        new_tab_btn = QAction("+", self)
-        new_tab_btn.setToolTip("New Tab")
+        new_tab_btn = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewPreview),
+            "",
+            self
+        )
+        new_tab_btn.setToolTip("New Tab (Ctrl+T)")
         new_tab_btn.triggered.connect(
             lambda: self.add_new_tab(QUrl("https://www.bing.com"), "New Tab")
         )

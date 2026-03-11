@@ -20,6 +20,19 @@
   - settings.search_engine = "Baidu" 时，搜索 "test" -> https://www.baidu.com/s?wd=test
 - 代码规范：运行 ruff check 通过（仅有预存在的未使用导入警告）
 - 注意事项：搜索引擎的可访问性取决于网络环境，中国大陆可能需要使用 Baidu 或其他国内搜索引擎
+
+## [2026-03-11 11:45:00] - 完成任务: UI现代化 - 标签栏美化
+- 修复 src/theme_manager.py 中 QTabBar 样式：
+  - 移除默认边框，改用扁平化设计
+  - 标签页使用圆角矩形 (border-radius: 8px)
+  - 增强悬停效果 (使用 tab_hover 颜色)
+  - 关闭按钮改为圆点样式，悬停时显示红色背景
+  - 添加选中标签的高亮样式 (使用 accent 强调色)
+- 在 src/main.py 中启用标签页拖拽排序：self.tabs.setMovable(True)
+- 更新新建标签页按钮样式：使用 SP_FileDialogNewPreview 图标替换 "+" 文本
+- 同步更新 IncognitoWindow 的新建标签页按钮样式
+- 测试方法：python -m py_compile 编译通过，ruff check 无新错误
+- UI 效果：标签栏更接近 Chrome 的现代化风格
 - 自动开发守护进程 (Infinite Daemon) 已就绪。
 - Git 仓库已初始化。
 - `CLAUDE.md`, `task.json`, `run-infinite.sh` 配置文件已生成。
