@@ -5,7 +5,21 @@
 
 ---
 
-## 系统初始化
+## [2026-03-11 11:30:00] - 完成任务: 搜索功能测试与修复
+- 问题分析：发现 navigate_to_url() 函数硬编码使用 "Bing" 搜索引擎，忽略了用户设置
+- 修复方案：修改 src/main.py 第 651-655 行，从 self.settings 读取用户选择的搜索引擎
+- 修复前：`url = SEARCH_ENGINES.get("Bing", ...).format(text)`
+- 修复后：`search_engine = self.settings.get("search_engine", "Bing")` 然后使用该变量
+- 验证方法：
+  - 创建 test_search.py 测试脚本，验证搜索逻辑正确
+  - 创建 test_search_fix.py 验证修复后正确使用设置中的搜索引擎
+  - 测试 Google、Bing、Baidu 三个搜索引擎 URL 拼接正确
+- 测试结果：
+  - settings.search_engine = "Google" 时，搜索 "test" -> https://www.google.com/search?q=test
+  - settings.search_engine = "Bing" 时，搜索 "test" -> https://www.bing.com/search?q=test
+  - settings.search_engine = "Baidu" 时，搜索 "test" -> https://www.baidu.com/s?wd=test
+- 代码规范：运行 ruff check 通过（仅有预存在的未使用导入警告）
+- 注意事项：搜索引擎的可访问性取决于网络环境，中国大陆可能需要使用 Baidu 或其他国内搜索引擎
 - 自动开发守护进程 (Infinite Daemon) 已就绪。
 - Git 仓库已初始化。
 - `CLAUDE.md`, `task.json`, `run-infinite.sh` 配置文件已生成。

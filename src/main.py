@@ -648,7 +648,9 @@ class IncognitoWindow(QMainWindow):
                 text = "https://" + text
             url = text
         else:
-            url = SEARCH_ENGINES.get("Bing", "https://www.bing.com/search?q={}").format(
+            # 从设置中读取用户选择的搜索引擎
+            search_engine = self.settings.get("search_engine", "Bing")
+            url = SEARCH_ENGINES.get(search_engine, SEARCH_ENGINES["Bing"]).format(
                 text
             )
         if self.tabs.currentWidget():
