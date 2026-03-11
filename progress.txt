@@ -73,6 +73,16 @@
 - 菜单项已有快捷键提示（在 QAction 中设置）
 - 测试方法：python -m py_compile 编译通过
 - 自动开发守护进程 (Infinite Daemon) 已就绪。
+
+## [2026-03-11 12:40:00] - 完成任务: UI现代化 - 对话框统一样式
+- 在 theme_manager.py 中增强 QDialog 样式：圆角边框
+- 添加 QPushButton 统一样式：
+  - 扁平化设计、圆角边框
+  - 悬停和按下效果
+  - 禁用状态显示为灰色
+- 输入框已在 theme_manager 中统一样式
+- 测试方法：python -m py_compile 编译通过
+- 自动开发守护进程 (Infinite Daemon) 已就绪。
 - Git 仓库已初始化。
 - `CLAUDE.md`, `task.json`, `run-infinite.sh` 配置文件已生成。
 

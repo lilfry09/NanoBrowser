@@ -179,6 +179,25 @@ QProgressBar::chunk {{
 QDialog {{
     background-color: {c["bg_primary"]};
     color: {c["text_primary"]};
+    border-radius: 12px;
+}}
+QPushButton {{
+    background-color: {c["button_bg"]};
+    color: {c["text_primary"]};
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    min-width: 70px;
+}}
+QPushButton:hover {{
+    background-color: {c["button_hover"]};
+}}
+QPushButton:pressed {{
+    background-color: {c["bg_tertiary"]};
+}}
+QPushButton:disabled {{
+    background-color: {c["bg_secondary"]};
+    color: {c["border"]};
 }}
 QTableWidget {{
     background-color: {c["bg_primary"]};
