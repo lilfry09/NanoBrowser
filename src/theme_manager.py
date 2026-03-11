@@ -149,10 +149,24 @@ QMenu {{
     background-color: {c["bg_secondary"]};
     color: {c["text_primary"]};
     border: 1px solid {c["border"]};
+    border-radius: 8px;
+    padding: 4px;
+}}
+QMenu::item {{
+    padding: 6px 30px;
+    border-radius: 4px;
 }}
 QMenu::item:selected {{
     background-color: {c["menu_selected"]};
     color: {c["text_secondary"]};
+}}
+QMenu::item:disabled {{
+    color: {c["border"]};
+}}
+QMenu::separator {{
+    height: 1px;
+    background-color: {c["border"]};
+    margin: 4px 8px;
 }}
 QProgressBar {{
     max-height: 2px;

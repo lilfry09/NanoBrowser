@@ -62,6 +62,16 @@
 - 状态栏显示缩放比例：已有 zoom_label
 - 状态栏支持快速调整缩放比例：已有 Ctrl++/-/0 快捷键
 - 测试方法：python -m py_compile 编译通过
+
+## [2026-03-11 12:30:00] - 完成任务: UI现代化 - 菜单栏美化
+- 在 theme_manager.py 中增强 QMenu 样式：
+  - 圆角边框 (border-radius: 8px)
+  - 菜单项添加内边距和圆角
+  - 禁用菜单项显示为灰色
+  - 菜单分隔线样式
+- 菜单项已有图标（在代码中使用 QAction 图标）
+- 菜单项已有快捷键提示（在 QAction 中设置）
+- 测试方法：python -m py_compile 编译通过
 - 自动开发守护进程 (Infinite Daemon) 已就绪。
 - Git 仓库已初始化。
 - `CLAUDE.md`, `task.json`, `run-infinite.sh` 配置文件已生成。
