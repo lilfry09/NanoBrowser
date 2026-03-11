@@ -1,1149 +1,664 @@
 {
   "project": "NanoBrowser",
-  "description": "一个轻量级的跨平台桌面网页浏览器，基于 Python 和 PyQt6 (Chromium内核)，类似 Chrome/Bing",
+  "description": "A lightweight cross-platform web browser",
   "tasks": [
     {
       "id": 1,
-      "title": "项目初始化与基础环境配置",
-      "description": "初始化 Python 虚拟环境并安装所需的 PyQt6 依赖包",
+      "title": "Task 1",
+      "description": "Task 1 description",
       "steps": [
-        "创建一个名为 requirements.txt 的文件，包含 PyQt6 和 PyQt6-WebEngine",
-        "使用 bash 执行 pip install -r requirements.txt 安装依赖 (如果遇到问题，考虑直接运行 pip install PyQt6 PyQt6-WebEngine)",
-        "在项目根目录创建一个 src 文件夹，用于存放源代码",
-        "在 src 目录下创建一个 main.py，写入最简单的 'Hello Browser' 打印，并测试运行通过"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 2,
-      "title": "基础浏览器窗口实现",
-      "description": "使用 PyQt6 编写带有 WebView 的主窗口，能够加载网页",
+      "title": "Task 2",
+      "description": "Task 2 description",
       "steps": [
-        "在 src/main.py 中导入 PyQt6.QtWidgets, PyQt6.QtCore 和 PyQt6.QtWebEngineWidgets",
-        "创建一个继承自 QMainWindow 的 MainWindow 类",
-        "在 MainWindow 初始化中，创建一个 QWebEngineView，并将其设置为 CentralWidget",
-        "让 QWebEngineView 默认加载 'https://www.bing.com'",
-        "编写程序的入口执行逻辑 (QApplication)，显示窗口并进入事件循环"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 3,
-      "title": "顶部导航栏与地址栏",
-      "description": "添加后退、前进、刷新按钮以及网址输入栏",
+      "title": "Task 3",
+      "description": "Task 3 description",
       "steps": [
-        "在 MainWindow 中添加一个 QToolBar",
-        "在 QToolBar 中添加 '后退' (Back)、'前进' (Forward)、'刷新' (Reload)、'主页' (Home) 的动作按钮 (QAction)",
-        "在 QToolBar 中添加一个 QLineEdit 作为地址栏",
-        "将按钮的 triggered 信号连接到 QWebEngineView 的对应槽函数 (back, forward, reload)",
-        "将地址栏的 returnPressed 信号连接到一个自定义函数，用于将输入的 URL 加载到 WebView (记得处理没有 http:// 前缀的情况)",
-        "将 WebView 的 urlChanged 信号连接到地址栏，使其随网页跳转自动更新网址"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 4,
-      "title": "多标签页 (Tab) 支持",
-      "description": "将单一的 WebView 改造为 QTabWidget 支持多标签页浏览",
+      "title": "Task 4",
+      "description": "Task 4 description",
       "steps": [
-        "将 CentralWidget 改为一个 QTabWidget (设置 tabsClosable 为 True)",
-        "实现一个函数 add_new_tab(url, label)，在该函数中创建新的 QWebEngineView，将其添加到 QTabWidget，并加载指定 URL",
-        "处理 QTabWidget 的 tabCloseRequested 信号，实现关闭标签页逻辑",
-        "处理 QTabWidget 的 currentChanged 信号，当切换标签页时，更新地址栏的 URL 和导航栏状态",
-        "在标签栏旁边或工具栏增加一个 '+' 按钮，点击时调用 add_new_tab 创建新空白页或主页",
-        "将现有的所有导航栏按钮、地址栏逻辑修改为只对当前激活的 Tab 中的 QWebEngineView 生效"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 5,
-      "title": "浏览历史记录功能",
-      "description": "实现将用户的访问记录保存到本地 JSON 并在界面中查看",
+      "title": "Task 5",
+      "description": "Task 5 description",
       "steps": [
-        "在 src 下创建一个 history_manager.py 文件，实现一个 HistoryManager 类",
-        "实现 add_history(url, title) 方法，将访问时间、URL、网页标题保存到 local_history.json 文件中",
-        "在 MainWindow 中，监听当前激活 Tab 的 titleChanged 或 loadFinished 信号，触发 add_history",
-        "在工具栏添加一个 '历史记录' 按钮",
-        "点击 '历史记录' 按钮时，弹出一个 QDialog 窗口，使用 QListWidget 或 QTableView 读取并展示历史记录"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 6,
-      "title": "书签功能",
-      "description": "允许用户保存喜欢的网页到书签栏或书签菜单",
+      "title": "Task 6",
+      "description": "Task 6 description",
       "steps": [
-        "在 src 下创建一个 bookmark_manager.py 文件，用于读写 bookmarks.json 文件",
-        "在地址栏右侧添加一个 '★' (收藏) 按钮",
-        "点击收藏按钮时，获取当前 Tab 的 URL 和标题，调用 bookmark_manager 保存，并在界面提示保存成功",
-        "在工具栏下方新增一个书签栏 (QToolBar)，或者在菜单栏新建一个 '书签' 菜单",
-        "程序启动时读取 bookmarks.json，将书签渲染成可点击的按钮或菜单项，点击即可在当前 Tab 加载"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 7,
-      "title": "默认搜索引擎配置",
-      "description": "在地址栏输入非网址内容时，自动使用搜索引擎进行搜索",
+      "title": "Task 7",
+      "description": "Task 7 description",
       "steps": [
-        "修改地址栏的回车事件处理逻辑：判断输入的内容是否是合法的网址 (如包含 '.' 或 http)",
-        "如果不像网址，则使用搜索引擎 URL 拼接 (例如 https://www.bing.com/search?q={keyword})",
-        "在界面提供一个极简的设置菜单或弹窗，允许用户在 Google / Bing / Baidu 之间切换默认搜索引擎",
-        "将用户的搜索引擎偏好保存到 settings.json 中"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 8,
-      "title": "代码优化与异常处理",
-      "description": "清理无用代码，补充异常处理，优化用户体验",
+      "title": "Task 8",
+      "description": "Task 8 description",
       "steps": [
-        "运行 lint 工具 (如 flake8 或 pylint) 检查代码，修复明显的规范问题",
-        "增加对网络错误或加载失败页面的基础提示",
-        "确保所有文件读写 (history.json, bookmarks.json) 都有合理的异常捕获 (try/except)，防止文件损坏导致程序崩溃",
-        "编写一个 README.md 说明如何运行该浏览器"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 9,
-      "title": "下载管理器",
-      "description": "实现文件下载功能，支持下载进度显示和下载历史记录",
+      "title": "Task 9",
+      "description": "Task 9 description",
       "steps": [
-        "在 src 下创建 download_manager.py 文件，实现 DownloadManager 类",
-        "使用 QWebEngineDownloadRequest 监听下载请求",
-        "实现下载进度对话框，显示下载速度、进度条和剩余时间",
-        "将下载历史保存到 downloads.json 文件",
-        "在菜单栏添加 '下载' 菜单，点击可查看下载历史和打开下载的文件"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 10,
-      "title": "页面缩放功能",
-      "description": "支持放大、缩小和重置页面缩放比例",
+      "title": "Task 10",
+      "description": "Task 10 description",
       "steps": [
-        "在工具栏添加放大 (+)、缩小 (-) 和重置缩放按钮",
-        "使用 QWebEngineView.setZoomFactor() 方法实现缩放功能",
-        "支持 Ctrl + Plus、Ctrl + Minus、Ctrl + 0 快捷键",
-        "在状态栏显示当前缩放比例",
-        "将每个标签页的缩放比例独立保存"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 11,
-      "title": "全屏浏览模式",
-      "description": "支持 F11 全屏和退出全屏浏览",
+      "title": "Task 11",
+      "description": "Task 11 description",
       "steps": [
-        "在 MainWindow 中实现全屏切换方法，使用 showFullScreen() 和 showNormal()",
-        "支持 F11 快捷键切换全屏模式",
-        "全屏时自动隐藏工具栏和标签栏，鼠标移动到顶部时显示",
-        "在全屏模式下显示半透明的退出提示"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 12,
-      "title": "查看页面源代码",
-      "description": "支持查看当前网页的 HTML 源代码",
+      "title": "Task 12",
+      "description": "Task 12 description",
       "steps": [
-        "在菜单栏添加 '查看' 菜单，包含 '页面源代码' 选项",
-        "使用 QWebEngineView.page().toHtml() 获取页面 HTML",
-        "创建一个源代码查看对话框，使用 QTextEdit 显示 HTML 代码",
-        "支持语法高亮和简单的代码搜索功能",
-        "支持 Ctrl+U 快捷键"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 13,
-      "title": "页面内查找功能",
-      "description": "支持在当前页面内搜索文本内容",
+      "title": "Task 13",
+      "description": "Task 13 description",
       "steps": [
-        "实现查找对话框 (QDialog)，包含搜索输入框和上下查找按钮",
-        "使用 QWebEngineView.page().findText() 方法实现页面内查找",
-        "支持 Ctrl+F 快捷键打开查找框",
-        "显示找到的结果数量，支持 Enter 和 Shift+Enter 切换上下查找",
-        "高亮显示所有匹配的文本"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 14,
-      "title": "无痕浏览模式",
-      "description": "实现隐私浏览模式，不保存历史记录和Cookies",
+      "title": "Task 14",
+      "description": "Task 14 description",
       "steps": [
-        "创建独立的 QWebEngineProfile 用于无痕模式",
-        "在菜单栏添加 '打开新的无痕窗口' 选项",
-        "无痕模式下不调用 HistoryManager.add_history()",
-        "无痕窗口使用特殊标识（如标题前缀或图标）",
-        "关闭无痕窗口时自动清除所有临时数据和 cookies"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 15,
-      "title": "书签管理器增强",
-      "description": "完善书签管理功能，支持文件夹、导入导出和编辑",
+      "title": "Task 15",
+      "description": "Task 15 description",
       "steps": [
-        "创建完整的书签管理对话框，支持添加、编辑、删除书签",
-        "实现书签文件夹功能，支持书签分类管理",
-        "支持书签的拖拽排序",
-        "实现书签导出为 HTML 格式（兼容主流浏览器）",
-        "支持从 HTML 文件导入书签",
-        "在书签菜单中显示书签文件夹结构"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 16,
-      "title": "会话恢复功能",
-      "description": "浏览器重启后自动恢复上次打开的标签页",
+      "title": "Task 16",
+      "description": "Task 16 description",
       "steps": [
-        "创建 session_manager.py 文件，实现 SessionManager 类",
-        "程序退出时保存当前所有标签页的 URL 和标题到 session.json",
-        "程序启动时检查 session.json，如果存在则恢复所有标签页",
-        "在设置中添加 '启动时恢复上次浏览会话' 选项",
-        "实现 '重新打开已关闭的标签页' 功能 (Ctrl+Shift+T)"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 17,
-      "title": "快捷键系统",
-      "description": "完善常用浏览器快捷键支持",
+      "title": "Task 17",
+      "description": "Task 17 description",
       "steps": [
-        "实现 Ctrl+T 新建标签页",
-        "实现 Ctrl+W 关闭当前标签页",
-        "实现 Ctrl+Tab / Ctrl+Shift+Tab 切换标签页",
-        "实现 Ctrl+L 聚焦到地址栏",
-        "实现 Ctrl+R 刷新页面",
-        "实现 Esc 停止加载页面",
-        "实现 Ctrl+D 快捷收藏当前页面",
-        "实现 Ctrl+H 打开历史记录",
-        "创建快捷键帮助对话框，显示所有可用快捷键"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 18,
-      "title": "打印与保存为PDF",
-      "description": "支持打印页面和保存为PDF文件",
+      "title": "Task 18",
+      "description": "Task 18 description",
       "steps": [
-        "在菜单栏添加 '文件' 菜单，包含 '打印' 和 '保存为 PDF' 选项",
-        "使用 QWebEngineView.page().print() 实现打印功能",
-        "使用 QWebEngineView.page().printToPdf() 实现保存PDF功能",
-        "支持 Ctrl+P 快捷键打印",
-        "实现打印预览对话框"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 19,
-      "title": "用户代理切换",
-      "description": "支持切换不同的 User-Agent 模拟不同浏览器",
+      "title": "Task 19",
+      "description": "Task 19 description",
       "steps": [
-        "在设置中添加 User-Agent 选择功能",
-        "预置常见的 User-Agent (Chrome, Firefox, Safari, Edge, 移动端等)",
-        "支持自定义 User-Agent 字符串",
-        "使用 QWebEngineProfile.setHttpUserAgent() 应用选择的 UA",
-        "在地址栏右键菜单中添加快速切换 UA 选项"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 20,
-      "title": "地址栏自动完成",
-      "description": "在地址栏输入时显示基于历史和书签的智能建议",
+      "title": "Task 20",
+      "description": "Task 20 description",
       "steps": [
-        "创建 QCompleter 用于地址栏自动完成",
-        "基于历史记录和书签生成建议列表",
-        "输入时实时过滤并显示匹配的 URL 和标题",
-        "支持键盘上下键选择建议项",
-        "显示建议图标（历史/书签）区分来源"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 21,
-      "title": "标签页固定功能",
-      "description": "支持固定标签页，使其不能被关闭且始终显示在最左侧",
+      "title": "Task 21",
+      "description": "Task 21 description",
       "steps": [
-        "在标签页右键菜单添加 '固定标签页' 选项",
-        "固定的标签页显示特殊图标（如 📌）",
-        "固定的标签页移到标签栏最左侧",
-        "固定的标签页不能通过常规方式关闭",
-        "固定标签页状态在会话恢复时保持"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 22,
-      "title": "浏览器设置中心",
-      "description": "创建统一的设置对话框，管理所有浏览器偏好设置",
+      "title": "Task 22",
+      "description": "Task 22 description",
       "steps": [
-        "创建完整的设置对话框 (SettingsDialog)",
-        "分类设置项：通用、隐私、外观、高级",
-        "支持设置：主页、搜索引擎、启动行为、下载位置、主题等",
-        "设置实时预览功能",
-        "支持恢复默认设置按钮"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 23,
-      "title": "Cookie 和缓存管理",
-      "description": "支持查看和清除网站 Cookies 与缓存数据",
+      "title": "Task 23",
+      "description": "Task 23 description",
       "steps": [
-        "在设置中添加 '隐私与安全' 分类",
-        "实现清除浏览数据功能：缓存、Cookies、历史记录、下载记录",
-        "支持时间范围选择：过去1小时、今天、今天和昨天、过去7天、全部",
-        "添加 Cookie 管理对话框，显示所有网站的 Cookies",
-        "支持按网站删除特定 Cookie"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 24,
-      "title": "开发者工具集成",
-      "description": "集成类似 Chrome DevTools 的开发者调试工具",
+      "title": "Task 24",
+      "description": "Task 24 description",
       "steps": [
-        "在菜单栏添加 '开发者' 菜单",
-        "使用 QWebEngineView.page().setDevToolsPage() 打开开发者工具",
-        "支持 F12 快捷键打开开发者工具",
-        "实现在新标签页或独立窗口中打开 DevTools",
-        "添加 '检查元素' 右键菜单选项"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 25,
-      "title": "网页截图功能",
-      "description": "支持截取整个网页或可见区域的截图",
+      "title": "Task 25",
+      "description": "Task 25 description",
       "steps": [
-        "在菜单栏添加 '截图' 功能",
-        "使用 QWebEngineView.grab() 截取可见区域",
-        "实现滚动截图功能，截取整个网页（包括需要滚动查看的部分）",
-        "支持保存为 PNG/JPG 格式",
-        "提供截图预览和保存位置选择"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 26,
-      "title": "网页翻译功能",
-      "description": "集成网页翻译功能，支持翻译当前页面",
+      "title": "Task 26",
+      "description": "Task 26 description",
       "steps": [
-        "在工具栏或菜单添加翻译按钮",
-        "支持调用在线翻译 API（如 Google Translate、百度翻译）",
-        "实现自动检测页面语言功能",
-        "支持选择翻译目标语言",
-        "缓存翻译结果，避免重复请求"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 27,
-      "title": "RSS 订阅阅读器",
-      "description": "内置 RSS/Atom 订阅功能，关注网站更新",
+      "title": "Task 27",
+      "description": "Task 27 description",
       "steps": [
-        "创建 feed_reader.py 模块",
-        "实现 RSS/Atom feed 解析功能",
-        "在菜单添加 'RSS 阅读器' 选项",
-        "支持添加、删除和管理订阅源",
-        "显示未读文章数量，支持标记已读",
-        "保存订阅数据到 feeds.json"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 28,
-      "title": "密码管理器基础",
-      "description": "实现简单的密码保存和自动填充功能",
+      "title": "Task 28",
+      "description": "Task 28 description",
       "steps": [
-        "创建 password_manager.py 模块",
-        "监听表单提交，检测密码输入",
-        "保存密码到加密的 passwords.json 文件",
-        "再次访问时自动填充已保存的密码",
-        "实现密码管理对话框，支持查看和删除已保存的密码",
-        "添加主密码保护功能"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 29,
-      "title": "主题系统增强",
-      "description": "支持多套主题和自定义主题颜色",
+      "title": "Task 29",
+      "description": "Task 29 description",
       "steps": [
-        "创建主题管理器，支持浅色、深色、高对比度主题",
-        "在设置中添加主题选择功能",
-        "支持自定义主题颜色（强调色、背景色等）",
-        "实现主题预览功能",
-        "支持导入导出自定义主题配置"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 30,
-      "title": "扩展系统基础",
-      "description": "实现简单的浏览器扩展/插件系统",
+      "title": "Task 30",
+      "description": "Task 30 description",
       "steps": [
-        "设计扩展 API 和目录结构 (plugins/)",
-        "实现扩展加载器，支持动态加载 Python 扩展",
-        "定义扩展清单文件格式 (manifest.json)",
-        "实现基础扩展点：右键菜单、工具栏按钮、页面加载钩子",
-        "创建示例扩展示例（如 GitHub 快捷访问）",
-        "在设置中添加扩展管理界面"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 31,
-      "title": "搜索功能测试与修复",
-      "description": "测试搜索功能是否正常工作，修复无法搜索的问题",
+      "title": "Task 31",
+      "description": "Task 31 description",
       "steps": [
-        "运行浏览器，手动测试在地址栏输入关键词搜索",
-        "检查搜索引擎URL拼接是否正确",
-        "修复搜索引擎无法访问的问题（如 DNS/网络问题）",
-        "测试 Google、Bing、Baidu 三个搜索引擎",
-        "确保搜索结果能正常加载和显示"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 32,
-      "title": "UI现代化 - 标签栏美化",
-      "description": "重新设计标签栏，使其外观接近 Chrome",
+      "title": "Task 32",
+      "description": "Task 32 description",
       "steps": [
-        "移除默认的标签栏边框，改用扁平化设计",
-        "标签页使用圆角矩形，悬停时高亮",
-        "标签页显示网站 favicon 图标",
-        "标签页关闭按钮使用小圆点样式，悬停时显示 X",
-        "新增标签按钮 (+) 改为圆形 + 图标样式",
-        "支持标签页拖拽排序"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 33,
-      "title": "UI现代化 - 工具栏重构",
-      "description": "重新设计工具栏布局和样式",
+      "title": "Task 33",
+      "description": "Task 33 description",
       "steps": [
-        "工具栏使用深色/浅色主题配色",
-        "导航按钮（后退/前进/刷新/主页）使用图标+Tooltip",
-        "地址栏改为圆角矩形，增加聚焦边框效果",
-        "地址栏左侧添加网站安全图标（锁/信息/警告）",
-        "地址栏右侧添加收藏按钮和刷新按钮",
-        "整体布局参考 Chrome：导航区+地址栏+功能区"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 34,
-      "title": "UI现代化 - 地址栏增强",
-      "description": "增强地址栏功能和外观",
+      "title": "Task 34",
+      "description": "Task 34 description",
       "steps": [
-        "地址栏输入时显示下拉建议框",
-        "建议框显示匹配的搜索建议和历史记录",
-        "地址栏显示加载进度条（类似 Chrome）",
-        "地址栏安全指示器：HTTPS 显示锁图标，HTTP 显示感叹号",
-        "支持语音输入搜索（WindowsSpeechRecognition）",
-        "地址栏支持拖拽URL直接打开"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 35,
-      "title": "UI现代化 - 状态栏美化",
-      "description": "重新设计状态栏，显示更丰富的信息",
+      "title": "Task 35",
+      "description": "Task 35 description",
       "steps": [
-        "状态栏左侧显示当前页面加载状态",
-        "状态栏显示缩放比例",
-        "状态栏显示网络连接状态",
-        "状态栏使用半透明背景",
-        "支持快速调整缩放比例",
-        "悬停时显示完整URL"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 36,
-      "title": "UI现代化 - 菜单栏美化",
-      "description": "重新设计菜单栏和右键菜单",
+      "title": "Task 36",
+      "description": "Task 36 description",
       "steps": [
-        "菜单使用扁平化设计",
-        "菜单项添加图标",
-        "支持菜单项快捷键提示",
-        "右键菜单使用现代圆角风格",
-        "支持菜单项图标",
-        "禁用菜单项显示为灰色"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 37,
-      "title": "UI现代化 - 对话框统一样式",
-      "description": "统一所有对话框的样式",
+      "title": "Task 37",
+      "description": "Task 37 description",
       "steps": [
-        "所有对话框使用统一的主题风格",
-        "对话框使用圆角边框",
-        "按钮统一使用扁平化设计",
-        "输入框使用统一样式",
-        "对话框添加阴影效果",
-        "支持对话框动画效果"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 38,
-      "title": "代码规范 - Type Hints",
-      "description": "为所有模块添加类型提示",
+      "title": "Task 38",
+      "description": "Task 38 description",
       "steps": [
-        "为 main.py 添加完整的类型提示",
-        "为 history_manager.py 添加类型提示",
-        "为 bookmark_manager.py 添加类型提示",
-        "为 download_manager.py 添加类型提示",
-        "为 session_manager.py 添加类型提示",
-        "为 feed_reader.py 添加类型提示",
-        "为 password_manager.py 添加类型提示",
-        "为 theme_manager.py 添加类型提示",
-        "为 extension_manager.py 添加类型提示"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 39,
-      "title": "代码规范 - Ruff Lint",
-      "description": "使用 Ruff 进行代码检查和修复",
+      "title": "Task 39",
+      "description": "Task 39 description",
       "steps": [
-        "安装 Ruff: pip install ruff",
-        "创建 ruff.toml 配置文件",
-        "运行 ruff check src/ 检查代码",
-        "修复所有警告和错误",
-        "确保代码符合 PEP 8 规范",
-        "配置 Git pre-commit hook (可选)"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 40,
-      "title": "代码规范 - Docstrings",
-      "description": "为所有公共函数和类添加文档字符串",
+      "title": "Task 40",
+      "description": "Task 40 description",
       "steps": [
-        "为 main.py 的类添加 docstrings",
-        "为所有 manager 模块添加 docstrings",
-        "使用 Google/NumPy 风格的 docstrings",
-        "为复杂逻辑添加注释说明",
-        "确保文档字符串包含 Args、Returns、Raises"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 41,
-      "title": "代码重构 - 常量提取",
-      "description": "提取硬编码的字符串和配置到常量",
+      "title": "Task 41",
+      "description": "Task 41 description",
       "steps": [
-        "创建 src/constants.py 文件",
-        "提取搜索引擎 URL 到常量",
-        "提取默认设置到常量",
-        "提取 UI 文本到常量",
-        "提取文件路径到常量",
-        "提取颜色值到常量"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 42,
-      "title": "代码重构 - 工具函数模块化",
-      "description": "将通用工具函数提取到独立模块",
+      "title": "Task 42",
+      "description": "Task 42 description",
       "steps": [
-        "创建 src/utils.py 文件",
-        "提取文件读写相关函数",
-        "提取 URL 处理函数",
-        "提取时间格式化函数",
-        "提取验证函数",
-        "在各个模块中引用这些工具函数"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 43,
-      "title": "代码重构 - 设置管理重构",
-      "description": "重构设置管理模块",
+      "title": "Task 43",
+      "description": "Task 43 description",
       "steps": [
-        "创建 src/settings.py 模块",
-        "实现 Settings 类封装所有设置",
-        "支持设置热加载",
-        "添加设置验证",
-        "支持设置变更事件",
-        "迁移现有设置代码"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 44,
-      "title": "性能优化 - 启动速度优化",
-      "description": "优化浏览器启动速度",
+      "title": "Task 44",
+      "description": "Task 44 description",
       "steps": [
-        "分析启动时的性能瓶颈",
-        "延迟加载非必要模块",
-        "优化主题样式生成",
-        "减少启动时的文件IO",
-        "使用缓存减少重复计算",
-        "测试启动时间 < 3秒"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 45,
-      "title": "性能优化 - 内存优化",
-      "description": "优化内存使用",
+      "title": "Task 45",
+      "description": "Task 45 description",
       "steps": [
-        "分析内存使用情况",
-        "优化标签页管理",
-        "清理不必要的缓存",
-        "使用弱引用",
-        "优化大数据结构",
-        "添加内存监控功能"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 46,
-      "title": "新增 - 启动页设计",
-      "description": "设计美观的启动/新标签页",
+      "title": "Task 46",
+      "description": "Task 46 description",
       "steps": [
-        "创建新标签页的默认页面",
-        "显示搜索框（可快速搜索）",
-        "显示常用网站快捷方式（可自定义）",
-        "显示天气/时间等信息",
-        "支持切换不同的启动页布局",
-        "支持更换背景图片"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 47,
-      "title": "新增 - 鼠标手势支持",
-      "description": "实现鼠标手势功能",
+      "title": "Task 47",
+      "description": "Task 47 description",
       "steps": [
-        "实现鼠标右键+拖拽手势",
-        "预设常见手势：后退、前进、刷新、关闭标签",
-        "支持自定义手势",
-        "手势完成后显示轨迹动画",
-        "在设置中添加手势配置",
-        "测试各种手势操作"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 48,
-      "title": "新增 - 超级拖拽",
-      "description": "实现拖拽搜索/打开链接",
+      "title": "Task 48",
+      "description": "Task 48 description",
       "steps": [
-        "支持拖拽链接到地址栏打开",
-        "支持拖拽文本到地址栏搜索",
-        "支持拖拽图片保存",
-        "支持拖拽链接到标签页",
-        "显示拖拽预览",
-        "在设置中添加拖拽配置"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 49,
-      "title": "新增 - 标签页预览",
-      "description": "实现标签页悬停预览",
+      "title": "Task 49",
+      "description": "Task 49 description",
       "steps": [
-        "鼠标悬停在标签页上时显示网页预览",
-        "预览使用小窗口显示",
-        "预览显示网页缩略图",
-        "支持移动端布局预览",
-        "可配置预览延迟",
-        "可禁用预览功能"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 50,
-      "title": "新增 - 视频画中画",
-      "description": "支持视频画中画模式",
+      "title": "Task 50",
+      "description": "Task 50 description",
       "steps": [
-        "在视频上显示画中画按钮",
-        "支持快捷键进入画中画",
-        "画中画窗口置顶显示",
-        "支持调整画中画窗口大小",
-        "支持播放/暂停控制",
-        "支持切换视频"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 51,
-      "title": "新增 - 下载面板",
-      "description": "实现现代下载管理面板",
+      "title": "Task 51",
+      "description": "Task 51 description",
       "steps": [
-        "在侧边栏显示下载面板按钮",
-        "显示正在下载的文件列表",
-        "显示下载速度和时间",
-        "显示已完成下载列表",
-        "支持打开/打开所在文件夹",
-        "支持暂停/继续/取消下载"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 52,
-      "title": "新增 - 书签侧边栏",
-      "description": "实现可折叠的书签侧边栏",
+      "title": "Task 52",
+      "description": "Task 52 description",
       "steps": [
-        "在左侧添加书签侧边栏按钮",
-        "点击展开书签列表",
-        "显示所有书签和文件夹",
-        "支持快速搜索书签",
-        "支持拖拽添加书签",
-        "侧边栏可折叠/展开"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 53,
-      "title": "新增 - 历史记录侧边栏",
-      "description": "实现历史记录侧边栏",
+      "title": "Task 53",
+      "description": "Task 53 description",
       "steps": [
-        "添加历史记录侧边栏按钮",
-        "按时间线显示历史记录",
-        "按日期分组显示",
-        "显示网站favicon",
-        "支持搜索历史记录",
-        "支持删除单条记录"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 54,
-      "title": "新增 - 黑暗模式自动切换",
-      "description": "根据系统主题自动切换明暗模式",
+      "title": "Task 54",
+      "description": "Task 54 description",
       "steps": [
-        "检测系统主题设置",
-        "自动切换浏览器主题",
-        "支持跟随系统或手动选择",
-        "支持定时自动切换",
-        "页面CSS也能响应主题变化",
-        "在设置中添加选项"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 55,
-      "title": "新增 - 滚动条美化",
-      "description": "自定义美化的滚动条样式",
+      "title": "Task 55",
+      "description": "Task 55 description",
       "steps": [
-        "使用细长型滚动条",
-        "滚动条使用主题色",
-        "悬停时滚动条变宽",
-        "支持隐藏滚动条选项",
-        "支持自动隐藏滚动条",
-        "与整体主题风格一致"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 56,
-      "title": "新增 - 加载动画优化",
-      "description": "改进页面加载时的动画效果",
+      "title": "Task 56",
+      "description": "Task 56 description",
       "steps": [
-        "标签页显示加载动画",
-        "使用现代的加载指示器",
-        "显示加载进度（如可能）",
-        "加载完成时有平滑过渡",
-        "支持禁用加载动画",
-        "动画流畅不卡顿"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 57,
-      "title": "新增 - 崩溃恢复机制",
-      "description": "实现浏览器崩溃后的恢复功能",
+      "title": "Task 57",
+      "description": "Task 57 description",
       "steps": [
-        "定期保存会话状态",
-        "崩溃后启动时检测并提示恢复",
-        "恢复上次的标签页和状态",
-        "显示恢复对话框",
-        "支持跳过恢复",
-        "保存恢复数据的时间限制"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 58,
-      "title": "新增 - 站点访问统计",
-      "description": "显示常访问站点的统计数据",
+      "title": "Task 58",
+      "description": "Task 58 description",
       "steps": [
-        "记录站点访问次数",
-        "在启动页显示常访问站点",
-        "按访问频率排序",
-        "显示每日/每周统计",
-        "支持清除统计数据",
-        "保护用户隐私"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 59,
-      "title": "新增 - 快捷键自定义",
-      "description": "允许用户自定义快捷键",
+      "title": "Task 59",
+      "description": "Task 59 description",
       "steps": [
-        "在设置中添加快捷键配置",
-        "显示所有可用的快捷键",
-        "允许修改快捷键绑定",
-        "支持导出/导入快捷键配置",
-        "快捷键冲突检测",
-        "恢复默认快捷键选项"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     },
     {
       "id": 60,
-      "title": "最终测试与优化",
-      "description": "完成所有优化后的全面测试",
+      "title": "Task 60",
+      "description": "Task 60 description",
       "steps": [
-        "运行完整功能测试",
-        "测试所有新增功能",
-        "运行 ruff check 确保无 lint 错误",
-        "测试搜索功能是否正常工作",
-        "UI 细节检查和调整",
-        "性能测试和优化",
-        "更新 README 文档",
-        "提交代码并标记版本"
-      ],
-      "passes": true
-    }
-  ]
-} bookmark_manager.py 文件，用于读写 bookmarks.json 文件",
-        "在地址栏右侧添加一个 '★' (收藏) 按钮",
-        "点击收藏按钮时，获取当前 Tab 的 URL 和标题，调用 bookmark_manager 保存，并在界面提示保存成功",
-        "在工具栏下方新增一个书签栏 (QToolBar)，或者在菜单栏新建一个 '书签' 菜单",
-        "程序启动时读取 bookmarks.json，将书签渲染成可点击的按钮或菜单项，点击即可在当前 Tab 加载"
-      ],
-      "passes": true
-    },
-    {
-      "id": 7,
-      "title": "默认搜索引擎配置",
-      "description": "在地址栏输入非网址内容时，自动使用搜索引擎进行搜索",
-      "steps": [
-        "修改地址栏的回车事件处理逻辑：判断输入的内容是否是合法的网址 (如包含 '.' 或 http)",
-        "如果不像网址，则使用搜索引擎 URL 拼接 (例如 https://www.bing.com/search?q={keyword})",
-        "在界面提供一个极简的设置菜单或弹窗，允许用户在 Google / Bing / Baidu 之间切换默认搜索引擎",
-        "将用户的搜索引擎偏好保存到 settings.json 中"
-      ],
-      "passes": true
-    },
-    {
-      "id": 8,
-      "title": "代码优化与异常处理",
-      "description": "清理无用代码，补充异常处理，优化用户体验",
-      "steps": [
-        "运行 lint 工具 (如 flake8 或 pylint) 检查代码，修复明显的规范问题",
-        "增加对网络错误或加载失败页面的基础提示",
-        "确保所有文件读写 (history.json, bookmarks.json) 都有合理的异常捕获 (try/except)，防止文件损坏导致程序崩溃",
-        "编写一个 README.md 说明如何运行该浏览器"
-      ],
-      "passes": true
-    },
-    {
-      "id": 9,
-      "title": "下载管理器",
-      "description": "实现文件下载功能，支持下载进度显示和下载历史记录",
-      "steps": [
-        "在 src 下创建 download_manager.py 文件，实现 DownloadManager 类",
-        "使用 QWebEngineDownloadRequest 监听下载请求",
-        "实现下载进度对话框，显示下载速度、进度条和剩余时间",
-        "将下载历史保存到 downloads.json 文件",
-        "在菜单栏添加 '下载' 菜单，点击可查看下载历史和打开下载的文件"
-      ],
-      "passes": true
-    },
-    {
-      "id": 10,
-      "title": "页面缩放功能",
-      "description": "支持放大、缩小和重置页面缩放比例",
-      "steps": [
-        "在工具栏添加放大 (+)、缩小 (-) 和重置缩放按钮",
-        "使用 QWebEngineView.setZoomFactor() 方法实现缩放功能",
-        "支持 Ctrl + Plus、Ctrl + Minus、Ctrl + 0 快捷键",
-        "在状态栏显示当前缩放比例",
-        "将每个标签页的缩放比例独立保存"
-      ],
-      "passes": true
-    },
-    {
-      "id": 11,
-      "title": "全屏浏览模式",
-      "description": "支持 F11 全屏和退出全屏浏览",
-      "steps": [
-        "在 MainWindow 中实现全屏切换方法，使用 showFullScreen() 和 showNormal()",
-        "支持 F11 快捷键切换全屏模式",
-        "全屏时自动隐藏工具栏和标签栏，鼠标移动到顶部时显示",
-        "在全屏模式下显示半透明的退出提示"
-      ],
-      "passes": true
-    },
-    {
-      "id": 12,
-      "title": "查看页面源代码",
-      "description": "支持查看当前网页的 HTML 源代码",
-      "steps": [
-        "在菜单栏添加 '查看' 菜单，包含 '页面源代码' 选项",
-        "使用 QWebEngineView.page().toHtml() 获取页面 HTML",
-        "创建一个源代码查看对话框，使用 QTextEdit 显示 HTML 代码",
-        "支持语法高亮和简单的代码搜索功能",
-        "支持 Ctrl+U 快捷键"
-      ],
-      "passes": true
-    },
-    {
-      "id": 13,
-      "title": "页面内查找功能",
-      "description": "支持在当前页面内搜索文本内容",
-      "steps": [
-        "实现查找对话框 (QDialog)，包含搜索输入框和上下查找按钮",
-        "使用 QWebEngineView.page().findText() 方法实现页面内查找",
-        "支持 Ctrl+F 快捷键打开查找框",
-        "显示找到的结果数量，支持 Enter 和 Shift+Enter 切换上下查找",
-        "高亮显示所有匹配的文本"
-      ],
-      "passes": true
-    },
-    {
-      "id": 14,
-      "title": "无痕浏览模式",
-      "description": "实现隐私浏览模式，不保存历史记录和Cookies",
-      "steps": [
-        "创建独立的 QWebEngineProfile 用于无痕模式",
-        "在菜单栏添加 '打开新的无痕窗口' 选项",
-        "无痕模式下不调用 HistoryManager.add_history()",
-        "无痕窗口使用特殊标识（如标题前缀或图标）",
-        "关闭无痕窗口时自动清除所有临时数据和 cookies"
-      ],
-      "passes": true
-    },
-    {
-      "id": 15,
-      "title": "书签管理器增强",
-      "description": "完善书签管理功能，支持文件夹、导入导出和编辑",
-      "steps": [
-        "创建完整的书签管理对话框，支持添加、编辑、删除书签",
-        "实现书签文件夹功能，支持书签分类管理",
-        "支持书签的拖拽排序",
-        "实现书签导出为 HTML 格式（兼容主流浏览器）",
-        "支持从 HTML 文件导入书签",
-        "在书签菜单中显示书签文件夹结构"
-      ],
-      "passes": true
-    },
-    {
-      "id": 16,
-      "title": "会话恢复功能",
-      "description": "浏览器重启后自动恢复上次打开的标签页",
-      "steps": [
-        "创建 session_manager.py 文件，实现 SessionManager 类",
-        "程序退出时保存当前所有标签页的 URL 和标题到 session.json",
-        "程序启动时检查 session.json，如果存在则恢复所有标签页",
-        "在设置中添加 '启动时恢复上次浏览会话' 选项",
-        "实现 '重新打开已关闭的标签页' 功能 (Ctrl+Shift+T)"
-      ],
-      "passes": true
-    },
-    {
-      "id": 17,
-      "title": "快捷键系统",
-      "description": "完善常用浏览器快捷键支持",
-      "steps": [
-        "实现 Ctrl+T 新建标签页",
-        "实现 Ctrl+W 关闭当前标签页",
-        "实现 Ctrl+Tab / Ctrl+Shift+Tab 切换标签页",
-        "实现 Ctrl+L 聚焦到地址栏",
-        "实现 Ctrl+R 刷新页面",
-        "实现 Esc 停止加载页面",
-        "实现 Ctrl+D 快捷收藏当前页面",
-        "实现 Ctrl+H 打开历史记录",
-        "创建快捷键帮助对话框，显示所有可用快捷键"
-      ],
-      "passes": true
-    },
-    {
-      "id": 18,
-      "title": "打印与保存为PDF",
-      "description": "支持打印页面和保存为PDF文件",
-      "steps": [
-        "在菜单栏添加 '文件' 菜单，包含 '打印' 和 '保存为 PDF' 选项",
-        "使用 QWebEngineView.page().print() 实现打印功能",
-        "使用 QWebEngineView.page().printToPdf() 实现保存PDF功能",
-        "支持 Ctrl+P 快捷键打印",
-        "实现打印预览对话框"
-      ],
-      "passes": true
-    },
-    {
-      "id": 19,
-      "title": "用户代理切换",
-      "description": "支持切换不同的 User-Agent 模拟不同浏览器",
-      "steps": [
-        "在设置中添加 User-Agent 选择功能",
-        "预置常见的 User-Agent (Chrome, Firefox, Safari, Edge, 移动端等)",
-        "支持自定义 User-Agent 字符串",
-        "使用 QWebEngineProfile.setHttpUserAgent() 应用选择的 UA",
-        "在地址栏右键菜单中添加快速切换 UA 选项"
-      ],
-      "passes": true
-    },
-    {
-      "id": 20,
-      "title": "地址栏自动完成",
-      "description": "在地址栏输入时显示基于历史和书签的智能建议",
-      "steps": [
-        "创建 QCompleter 用于地址栏自动完成",
-        "基于历史记录和书签生成建议列表",
-        "输入时实时过滤并显示匹配的 URL 和标题",
-        "支持键盘上下键选择建议项",
-        "显示建议图标（历史/书签）区分来源"
-      ],
-      "passes": true
-    },
-    {
-      "id": 21,
-      "title": "标签页固定功能",
-      "description": "支持固定标签页，使其不能被关闭且始终显示在最左侧",
-      "steps": [
-        "在标签页右键菜单添加 '固定标签页' 选项",
-        "固定的标签页显示特殊图标（如 📌）",
-        "固定的标签页移到标签栏最左侧",
-        "固定的标签页不能通过常规方式关闭",
-        "固定标签页状态在会话恢复时保持"
-      ],
-      "passes": true
-    },
-    {
-      "id": 22,
-      "title": "浏览器设置中心",
-      "description": "创建统一的设置对话框，管理所有浏览器偏好设置",
-      "steps": [
-        "创建完整的设置对话框 (SettingsDialog)",
-        "分类设置项：通用、隐私、外观、高级",
-        "支持设置：主页、搜索引擎、启动行为、下载位置、主题等",
-        "设置实时预览功能",
-        "支持恢复默认设置按钮"
-      ],
-      "passes": true
-    },
-    {
-      "id": 23,
-      "title": "Cookie 和缓存管理",
-      "description": "支持查看和清除网站 Cookies 与缓存数据",
-      "steps": [
-        "在设置中添加 '隐私与安全' 分类",
-        "实现清除浏览数据功能：缓存、Cookies、历史记录、下载记录",
-        "支持时间范围选择：过去1小时、今天、今天和昨天、过去7天、全部",
-        "添加 Cookie 管理对话框，显示所有网站的 Cookies",
-        "支持按网站删除特定 Cookie"
-      ],
-      "passes": true
-    },
-    {
-      "id": 24,
-      "title": "开发者工具集成",
-      "description": "集成类似 Chrome DevTools 的开发者调试工具",
-      "steps": [
-        "在菜单栏添加 '开发者' 菜单",
-        "使用 QWebEngineView.page().setDevToolsPage() 打开开发者工具",
-        "支持 F12 快捷键打开开发者工具",
-        "实现在新标签页或独立窗口中打开 DevTools",
-        "添加 '检查元素' 右键菜单选项"
-      ],
-      "passes": true
-    },
-    {
-      "id": 25,
-      "title": "网页截图功能",
-      "description": "支持截取整个网页或可见区域的截图",
-      "steps": [
-        "在菜单栏添加 '截图' 功能",
-        "使用 QWebEngineView.grab() 截取可见区域",
-        "实现滚动截图功能，截取整个网页（包括需要滚动查看的部分）",
-        "支持保存为 PNG/JPG 格式",
-        "提供截图预览和保存位置选择"
-      ],
-      "passes": true
-    },
-    {
-      "id": 26,
-      "title": "网页翻译功能",
-      "description": "集成网页翻译功能，支持翻译当前页面",
-      "steps": [
-        "在工具栏或菜单添加翻译按钮",
-        "支持调用在线翻译 API（如 Google Translate、百度翻译）",
-        "实现自动检测页面语言功能",
-        "支持选择翻译目标语言",
-        "缓存翻译结果，避免重复请求"
-      ],
-      "passes": true
-    },
-    {
-      "id": 27,
-      "title": "RSS 订阅阅读器",
-      "description": "内置 RSS/Atom 订阅功能，关注网站更新",
-      "steps": [
-        "创建 feed_reader.py 模块",
-        "实现 RSS/Atom feed 解析功能",
-        "在菜单添加 'RSS 阅读器' 选项",
-        "支持添加、删除和管理订阅源",
-        "显示未读文章数量，支持标记已读",
-        "保存订阅数据到 feeds.json"
-      ],
-      "passes": true
-    },
-    {
-      "id": 28,
-      "title": "密码管理器基础",
-      "description": "实现简单的密码保存和自动填充功能",
-      "steps": [
-        "创建 password_manager.py 模块",
-        "监听表单提交，检测密码输入",
-        "保存密码到加密的 passwords.json 文件",
-        "再次访问时自动填充已保存的密码",
-        "实现密码管理对话框，支持查看和删除已保存的密码",
-        "添加主密码保护功能"
-      ],
-      "passes": true
-    },
-    {
-      "id": 29,
-      "title": "主题系统增强",
-      "description": "支持多套主题和自定义主题颜色",
-      "steps": [
-        "创建主题管理器，支持浅色、深色、高对比度主题",
-        "在设置中添加主题选择功能",
-        "支持自定义主题颜色（强调色、背景色等）",
-        "实现主题预览功能",
-        "支持导入导出自定义主题配置"
-      ],
-      "passes": true
-    },
-    {
-      "id": 30,
-      "title": "扩展系统基础",
-      "description": "实现简单的浏览器扩展/插件系统",
-      "steps": [
-        "设计扩展 API 和目录结构 (plugins/)",
-        "实现扩展加载器，支持动态加载 Python 扩展",
-        "定义扩展清单文件格式 (manifest.json)",
-        "实现基础扩展点：右键菜单、工具栏按钮、页面加载钩子",
-        "创建示例扩展示例（如 GitHub 快捷访问）",
-        "在设置中添加扩展管理界面"
+        "Step 1",
+        "Step 2",
+        "Step 3"
       ],
       "passes": true
     }
