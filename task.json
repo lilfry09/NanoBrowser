@@ -524,7 +524,7 @@
         "确保代码符合 PEP 8 规范",
         "配置 Git pre-commit hook (可选)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 40,
