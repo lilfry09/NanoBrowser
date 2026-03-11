@@ -91,6 +91,17 @@
 - ruff 工具已安装并可用
 - 测试方法：python -m ruff check 通过
 
+## [2026-03-11 13:00:00] - 完成任务: 代码重构 - 常量提取
+- 创建 src/constants.py 文件，包含：
+  - 文件路径常量（settings.json, history.json, bookmarks.json 等）
+  - 搜索引擎 URL 模板（SEARCH_ENGINES 字典）
+  - 默认设置（DEFAULT_SETTINGS 字典）
+  - 用户代理选项（USER_AGENTS 字典）
+  - 缩放比例限制（MIN_ZOOM, MAX_ZOOM, DEFAULT_ZOOM）
+  - 主题列表（BUILTIN_THEMES）
+  - 快捷键常量（SHORTCUTS 字典）
+- 测试方法：python -m py_compile 编译通过
+
 ## [2026-03-11 12:40:00] - 完成任务: UI现代化 - 对话框统一样式
 - `CLAUDE.md`, `task.json`, `run-infinite.sh` 配置文件已生成。
 
